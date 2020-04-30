@@ -1,0 +1,17 @@
+/target
+
+
+#Added by cargo
+#
+#already existing elements were commented out
+
+#/target
+Cargo.lock
+
+.vscode/
+.idea/
+bindings/python/bincraft.egg-info
+bindings/python/build
+bindings/python/dist
+
+__pycache__/

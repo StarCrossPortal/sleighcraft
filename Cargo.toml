@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "sleighcraft",
+    "bindings/python"
+]

@@ -1,0 +1,23 @@
+[package]
+name = "bincraft"
+version = "0.1.0"
+authors = ["ios <ios@starcross.cn>"]
+edition = "2018"
+
+[package.metadata.maturin]
+classifier = [
+    "Programming Language :: Python",
+    "Programming Language :: Rust",
+]
+
+
+[dependencies]
+sleighcraft = { path = "../../sleighcraft" }
+
+[dependencies.pyo3]
+version = "0.13.2"
+features = ["extension-module"]
+
+[lib]
+name = "bincraft"
+crate-type = ["cdylib"]
