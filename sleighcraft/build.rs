@@ -223,6 +223,8 @@ fn main() {
     let src_cpp = Path::new("src").join("cpp");
     let src_cpp_gen_bison = Path::new("src").join("cpp").join("gen").join("bison");
     let src_cpp_gen_flex = Path::new("src").join("cpp").join("gen").join("flex");
+    #[cfg(target_os = "windows")]
+    target.define("_WINDOWS", "1"); // This is assumed by ghidra, but not defined by msvc, strange.
     target
         .cpp(true)
         .warnings(false)
