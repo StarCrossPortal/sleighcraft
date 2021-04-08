@@ -67,7 +67,7 @@ jobs:
           MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
         run: |
           cd bindings/python
-          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $Env:MATURIN_USERNAME --target x86_64-pc-windows-gnu
+          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $Env:MATURIN_USERNAME
   macos-pypi-publish:
     runs-on: macos-latest
     steps:
