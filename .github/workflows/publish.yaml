@@ -99,7 +99,7 @@ jobs:
           cd bindings/python
           maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
   macos-arm-pypi-publish:
-    runs-on: [macos-latest, ARM64]
+    runs-on: [self-hosted, macOS, ARM64]
     defaults:
       run:
         shell: "/usr/bin/arch -arch arm64e /bin/bash {0}"
