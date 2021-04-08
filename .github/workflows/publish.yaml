@@ -97,7 +97,7 @@ jobs:
           MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
         run: |
           cd bindings/python
-          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAM
+          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
   macos-arm-pypi-publish:
     runs-on: [macos-latest, ARM64]
     defaults:
@@ -133,4 +133,4 @@ jobs:
           MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
         run: |
           cd bindings/python
-          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAM
+          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
