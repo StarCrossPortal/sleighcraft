@@ -17,11 +17,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install Rust
+    - name: Install Rust related dependencies
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         source ~/.cargo/env
-        rustup target install x86_64-unknown-linux-musl
     - name: Install dependencies and publish
       env:
         MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
@@ -31,5 +30,5 @@ jobs:
         source $HOME/.cargo/env
           for PYBIN in /opt/python/cp3[6789]*/bin; do
             "${PYBIN}/pip" install maturin
-            "${PYBIN}/maturin" publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}/python
+            "${PYBIN}/maturin" publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}/python --triple x86_64-unknown-linux-gnu
           done
