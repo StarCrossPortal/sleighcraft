@@ -32,7 +32,6 @@ jobs:
             "${PYBIN}/pip" install maturin
             "${PYBIN}/maturin" publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}/python --target x86_64-unknown-linux-gnu
           done
-
     windows-pypi-publish:
       runs-on: windows-latest
       steps:
@@ -64,7 +63,6 @@ jobs:
         run: |
           cd bindings/python
           maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
-
     macos-pypi-publish:
       runs-on: macos-latest
       steps:
@@ -96,7 +94,6 @@ jobs:
         run: |
           cd bindings/python
           maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAM
-
     macos-arm-pypi-publish:
       runs-on: [macOS, ARM64]
       defaults:
