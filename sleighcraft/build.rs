@@ -211,10 +211,11 @@ fn main() {
     for obj in compile_opts.objects.iter() {
         target.object(obj);
     }
-    let disasm_src_path= Path::new("src").join("cpp").join("bridge").join("disasm.cpp");
-    let src_cpp = Path::new("src").join("cpp");
-    let src_cpp_gen_bison = Path::new("src").join("cpp").join("gen").join("bison");
-    let src_cpp_gen_flex = Path::new("src").join("cpp").join("gen").join("flex");
+    let cur = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let disasm_src_path= Path::new(&cur).join("src").join("cpp").join("bridge").join("disasm.cpp");
+    let src_cpp = Path::new(&cur).join("src").join("cpp");
+    let src_cpp_gen_bison = Path::new(&cur).join("src").join("cpp").join("gen").join("bison");
+    let src_cpp_gen_flex = Path::new(&cur).join("src").join("cpp").join("gen").join("flex");
     target
         .cpp(true)
         .warnings(false)
