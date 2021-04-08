@@ -15,3 +15,6 @@ bindings/python/build
 bindings/python/dist
 
 __pycache__/
+
+# so should never be uploaded
+*.so

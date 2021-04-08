@@ -1,7 +1,7 @@
 [package]
 name = "bincraft"
 version = "0.1.0"
-authors = ["ios <ios@starcross.cn>"]
+authors = ["Anciety <anciety@starcross.cn>", "ios <ios@starcross.cn>"]
 edition = "2018"
 
 [package.metadata.maturin]
