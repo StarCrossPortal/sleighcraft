@@ -211,14 +211,18 @@ fn main() {
     for obj in compile_opts.objects.iter() {
         target.object(obj);
     }
+    let disasm_src_path= Path::new("src").join("cpp").join("bridge").join("disasm.cpp");
+    let src_cpp = Path::new("src").join("cpp");
+    let src_cpp_gen_bison = Path::new("src").join("cpp").join("gen").join("bison");
+    let src_cpp_gen_flex = Path::new("src").join("cpp").join("gen").join("flex");
     target
         .cpp(true)
         .warnings(false)
-        .file("src/cpp/bridge/disasm.cpp")
+        .file(disasm_src_path)
         .files(compile_opts.sources)
         .flag_if_supported("-std=c++14")
-        .include("src/cpp")
-        .include("src/cpp/gen/bison")
-        .include("src/cpp/gen/flex")
+        .include(src_cpp)
+        .include(src_cpp_gen_bison)
+        .include(src_cpp_gen_flex)
         .compile("sleigh");
 }
