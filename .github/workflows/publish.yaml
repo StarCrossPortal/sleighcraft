@@ -28,5 +28,5 @@ jobs:
         source $HOME/.cargo/env
           for PYBIN in /opt/python/cp3[6789]*/bin; do
             "${PYBIN}/pip" install maturin
-            "${PYBIN}/maturin" publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}
+            "${PYBIN}/maturin" publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}/python
           done
