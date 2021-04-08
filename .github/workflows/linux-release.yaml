@@ -3,8 +3,6 @@ name: linux
 on:
   push:
     branches: [ ci_test ]
-  pull_request:
-    branches: [ ci_test ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -48,4 +46,5 @@ jobs:
         MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
       run: |
+        cd bindings/python
         maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
