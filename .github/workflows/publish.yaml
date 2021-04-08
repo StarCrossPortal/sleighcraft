@@ -1,0 +1,32 @@
+name: publish
+
+on:
+  push:
+    # TODO: use tags
+    # tags:
+    #   - 'v*'
+    branches: [ ci_test ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux-pypi-publish:
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust
+      run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    - name: Install dependencies and publish
+      env:
+        MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
+      run: |
+        cd bindings/python
+        source $HOME/.cargo/env
+          for PYBIN in /opt/python/cp3[6789]*/bin; do
+            "${PYBIN}/pip" install maturin
+            "${PYBIN}/maturin" publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --manylinux 2014
+          done
