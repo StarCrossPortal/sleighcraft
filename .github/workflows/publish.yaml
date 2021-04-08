@@ -109,6 +109,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: x86_64-pc-windows-gnu
       - name: Install Python 3.6
         uses: actions/setup-python@v2
         with:
@@ -133,4 +134,4 @@ jobs:
           MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
         run: |
           cd bindings/python
-          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
+          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --target x86_64-pc-windows-gnu
