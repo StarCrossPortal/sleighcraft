@@ -29,7 +29,7 @@ jobs:
         source $HOME/.cargo/env
           for PYBIN in /opt/python/cp3[6789]*/bin; do
             "${PYBIN}/pip" install maturin
-            "${PYBIN}/maturin" publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}/python --target x86_64-unknown-linux-gnu
+            "${PYBIN}/maturin" publish --no-sdist -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}/python --target x86_64-unknown-linux-gnu
           done
   windows-pypi-publish:
     runs-on: windows-latest
@@ -66,7 +66,7 @@ jobs:
         run: |
           "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvar64.bat"
           cd bindings/python
-          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $Env:MATURIN_USERNAME
+          maturin publish --no-sdist -u $Env:MATURIN_USERNAME
   macos-pypi-publish:
     runs-on: macos-latest
     steps:
@@ -99,4 +99,4 @@ jobs:
           MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
         run: |
           cd bindings/python
-          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
+          maturin publish --no-sdist -u $MATURIN_USERNAME
