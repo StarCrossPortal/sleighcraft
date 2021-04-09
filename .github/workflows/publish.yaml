@@ -68,3 +68,36 @@ jobs:
         run: |
           cd bindings/python
           maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $Env:MATURIN_USERNAME --target x86_64-pc-windows-gnu
+  macos-pypi-publish:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Install Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: python -m pip install maturin
+      - name: Build and publish
+        env:
+          MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        run: |
+          cd bindings/python
+          maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $MATURIN_USERNAME
