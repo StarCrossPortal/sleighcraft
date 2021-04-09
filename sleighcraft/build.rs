@@ -17,6 +17,8 @@ use filetime::FileTime;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "windows")]
+use cc::Build;
 
 const DECOMPILER_SOURCE_BASE_CXX: &[&'static str] = &[
     "space.cc",
