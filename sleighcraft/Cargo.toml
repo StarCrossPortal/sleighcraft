@@ -3,6 +3,10 @@ name = "sleighcraft"
 version = "0.1.0"
 authors = ["Anciety <anciety@starcross.cn>"]
 edition = "2018"
+description = "Binary Analysis Craft"
+license-file = "LICENSE"
+license = "Apache-2.0"
+keywords = ["disassemble", "binary-analysis"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
