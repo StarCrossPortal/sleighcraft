@@ -1,5 +1,7 @@
 sleighcraft/src/cpp/gen/* linguist-generated
-sleighcraft/src/cpp/*.hh linguist-vendored
-sleighcraft/src/cpp/*.cc linguist-vendored
 sleighcraft/src/sla/* linguist-generated
 sleighcraft/src/sleigh/* linguist-vendored
+sleighcraft/src/cpp/*.hh linguist-vendored
+sleighcraft/src/cpp/*.cc linguist-vendored
+sleighcraft/src/cpp/*.y linguist-vendored
+sleighcraft/src/cpp/*.l linguist-vendored
