@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_OPBEHAVIOR_PROXY
+#define BRIDGE_PROXIES_OPBEHAVIOR_PROXY
+
 #include "opbehavior.hh"
 #include "sleighcraft/src/sleigh.rs.h"
 
@@ -34,3 +36,5 @@ public:
 
     // TODO: complete the methods
 };
+
+#endif

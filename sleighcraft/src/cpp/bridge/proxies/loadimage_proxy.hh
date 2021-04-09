@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//#pragma once
+#ifndef BRIDGE_PROXIES_LOADIMAGE_PROXY
+#define BRIDGE_PROXIES_LOADIMAGE_PROXY
+
 //#include <memory>
 //#include "address_proxy.hh"
 //#include "rust/cxx.h"
@@ -40,3 +42,5 @@
 //};
 //
 //std::unique_ptr<RustLoadImageProxy> from_rust(RustLoadImage& load_image);
+
+#endif

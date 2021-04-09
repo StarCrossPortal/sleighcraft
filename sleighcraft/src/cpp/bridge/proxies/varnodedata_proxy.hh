@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_VARNODEDATA_PROXY
+#define BRIDGE_PROXIES_VARNODEDATA_PROXY
+
 #include "pcoderaw.hh"
 #include "address_proxy.hh"
 #include "addrspace_proxy.hh"
@@ -35,3 +37,5 @@ public:
     //TODO: implemented void restoreXml
 };
 
+
+#endif

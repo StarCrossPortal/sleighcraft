@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_VARIABLE_PROXY
+#define BRIDGE_PROXIES_VARIABLE_PROXY
+
 #include "variable.hh"
 #include "varnode_proxy.hh"
 class VariableProxy {
@@ -31,3 +33,5 @@ public:
 
     // TODO: complete the methods
 };
+
+#endif

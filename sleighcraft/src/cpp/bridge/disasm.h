@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_DISASM_H
+#define BRIDGE_DISASM_H
+
 #include "sleigh.hh"
 #include "emulate.hh"
 #include "loadimage.hh"
@@ -109,3 +111,5 @@ private:
 //unique_ptr<SleighProxy> proxy_from_spec_path(rust::Str spec_content, RustLoadImage &ld, RustAssemblyEmit &asm_emit, RustPcodeEmit &rustPcodeEmit);
 std::unique_ptr<RustLoadImageProxy> from_rust(RustLoadImage& load_image);
 unique_ptr<SleighProxy> new_sleigh_proxy(RustLoadImage &ld);
+
+#endif

@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_ADDRESS_PROXY
+#define BRIDGE_PROXIES_ADDRESS_PROXY
 
 #include "address.hh"
 #include "addrspace_proxy.hh"
@@ -48,3 +49,5 @@ public:
 };
 
 unique_ptr<AddrSpaceProxy> addr_get_space_from_const(const AddressProxy& addr);
+
+#endif

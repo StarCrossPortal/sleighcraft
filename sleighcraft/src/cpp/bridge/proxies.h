@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_H
+#define BRIDGE_PROXIES_H
 
 // Other proxies might include the `sleigh.rs.h` where it includes again this file, causing a cyclic import.
 // So, we need forward declaration here to avoid problems.
@@ -52,3 +53,6 @@ class RustPcodeEmit;
 #include "proxies/variable_proxy.hh"
 #include "proxies/varnodedata_proxy.hh"
 #include "disasm.h"
+
+
+#endif
