@@ -210,6 +210,12 @@ fn prepare() -> CompileOptions {
     CompileOptions { objects, sources }
 }
 
+#[cfg(target_os = "windows")]
+fn windows_target_setup(target: &mut Build) {
+    target.define("_WINDOWS", "1"); // This is assumed by ghidra, but not defined by msvc, strange.
+    target.target("x86_64-pc-windows-gnu");
+}
+
 fn main() {
     let compile_opts = prepare();
     let sleigh_src_file = Path::new("src").join("sleigh.rs");
@@ -224,7 +230,7 @@ fn main() {
     let src_cpp_gen_bison = Path::new("src").join("cpp").join("gen").join("bison");
     let src_cpp_gen_flex = Path::new("src").join("cpp").join("gen").join("flex");
     #[cfg(target_os = "windows")]
-    target.define("_WINDOWS", "1"); // This is assumed by ghidra, but not defined by msvc, strange.
+    windows_target_setup(&mut target);
     target
         .cpp(true)
         .warnings(false)
