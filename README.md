@@ -30,17 +30,15 @@ Sleighcraft is a decoder (or, linear disassembler) based on ghidra's decompiler 
 
 #### Rust
 
-TODO: add the crate to crates.io
-
 Use cargo:
 
 ```toml
-sleighcraft = "0.1"
+sleighcraft = { git = "https://github.com/ret2lab/bincraft" }
 ```
 
-#### Python
+The repo is a bit large to submit on crates-io (because of predefined sla files), but save you the complex of compiling sleigh files yourself.
 
-TODO: add sleighcraft to pip with binary distribution (so we don't require user to have Rust compiler).
+#### Python
 
 ```bash
 # quick install it with pip
@@ -88,3 +86,5 @@ for asm in sleigh.disasm(0):
         print(f'opcode: {opcode}\t vars: {vars}\t')
     print()
 ```
+
+TODO: add Rust example
