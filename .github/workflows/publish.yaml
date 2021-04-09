@@ -2,10 +2,9 @@ name: publish
 
 on:
   push:
-    # TODO: use tags
-    # tags:
-    #   - 'v*'
-    branches: [ ci_test ]
+    tags:
+      - 'v*'
+    #branches: [ ci_test ]
 
 env:
   CARGO_TERM_COLOR: always
