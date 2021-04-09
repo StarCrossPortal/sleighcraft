@@ -6,6 +6,7 @@ edition = "2018"
 description = "Binary Analysis Craft"
 license = "Apache-2.0"
 keywords = ["disassemble", "binary-analysis"]
+repository = "https://github.com/ret2lab/bincraft/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
