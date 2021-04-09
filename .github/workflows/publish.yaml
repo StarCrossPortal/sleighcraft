@@ -58,13 +58,14 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies
         run: python -m pip install maturin
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+      #- name: Setup tmate session
+      #  uses: mxschmitt/action-tmate@v3
       - name: Build and publish
         env:
           MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
           MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
         run: |
+          "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvar64.bat"
           cd bindings/python
           maturin publish --no-sdist -r https://test.pypi.org/legacy/ -u $Env:MATURIN_USERNAME
   macos-pypi-publish:
