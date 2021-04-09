@@ -19,5 +19,5 @@ jobs:
           toolchain: stable
       - uses: katyo/publish-crates@v1
         with:
-          registroy-token: ${{ secrets.CRATES_IO_TOKEN }}
+          registry-token: ${{ secrets.CRATES_IO_TOKEN }}
           path: './sleighcraft'
