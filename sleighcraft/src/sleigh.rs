@@ -670,7 +670,10 @@ pub struct PlainLoadImage {
 impl LoadImage for PlainLoadImage {
     fn load_fill(&mut self, ptr: &mut [u8], addr: &AddressProxy) {
         let start_off = addr.get_offset() as u64;
-        let size = self.buf.len();
+        let mut size = 16;
+        if self.buf.len() <= 16 {
+            size = self.buf.len()
+        }
         let max = self.start + (size as u64 - 1);
 
         for i in 0..size {
