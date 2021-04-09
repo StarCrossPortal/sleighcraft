@@ -1,0 +1,102 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+    #branches: [ ci_test ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux-pypi-publish:
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust related dependencies
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source ~/.cargo/env
+    - name: Install dependencies and publish
+      env:
+        MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
+      run: |
+        cd bindings/python
+        source $HOME/.cargo/env
+          for PYBIN in /opt/python/cp3[6789]*/bin; do
+            "${PYBIN}/pip" install maturin
+            "${PYBIN}/maturin" publish --no-sdist -u $MATURIN_USERNAME --manylinux 2014 -i ${PYBIN}/python --target x86_64-unknown-linux-gnu
+          done
+  windows-pypi-publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Install Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: python -m pip install maturin
+      #- name: Setup tmate session
+      #  uses: mxschmitt/action-tmate@v3
+      - name: Build and publish
+        env:
+          MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        run: |
+          "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvar64.bat"
+          cd bindings/python
+          maturin publish --no-sdist -u $Env:MATURIN_USERNAME
+  macos-pypi-publish:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Install Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: python -m pip install maturin
+      - name: Build and publish
+        env:
+          MATURIN_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          MATURIN_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        run: |
+          cd bindings/python
+          maturin publish --no-sdist -u $MATURIN_USERNAME

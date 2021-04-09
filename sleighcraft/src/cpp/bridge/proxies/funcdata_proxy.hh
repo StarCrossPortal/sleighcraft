@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_FUNCDATA_PROXY
+#define BRIDGE_PROXIES_FUNCDATA_PROXY
+
 #include "funcdata.hh"
 class FuncDataProxy {
 public:
@@ -24,3 +26,5 @@ public:
 
     // TODO: implemented the methods
 };
+
+#endif

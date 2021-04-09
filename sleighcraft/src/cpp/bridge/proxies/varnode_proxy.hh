@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_VARNODE_PROXY
+#define BRIDGE_PROXIES_VARNODE_PROXY
+
 #include "varnode.hh"
 #include "addrspace_proxy.hh"
 #include "cover_proxy.hh"
@@ -38,3 +40,5 @@ public:
     bool less_than(const VarnodeProxy& op2) const;
     // TODO: complete the methods
 };
+
+#endif

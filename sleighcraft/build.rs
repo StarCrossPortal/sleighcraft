@@ -133,11 +133,11 @@ const PROXIES: &[&'static str] = &[
 ];
 
 struct CompileOptions {
-    sources: Vec<String>,
-    objects: Vec<String>,
+    sources: Vec<PathBuf>,
+    objects: Vec<PathBuf>,
 }
 
-fn need_recompile(source: &str) -> bool {
+fn need_recompile(source: &Path) -> bool {
     let outdir = env::var("OUT_DIR").unwrap();
 
     let path = Path::new(&outdir).join(source);
@@ -149,7 +149,7 @@ fn need_recompile(source: &str) -> bool {
     };
     let object_mtime = FileTime::from_last_modification_time(&metadata);
 
-    let metadata = fs::metadata(source).expect(&format!("source code {} not found", source));
+    let metadata = fs::metadata(source).expect(&format!("source code {:?} not found", source));
     let source_mtime = FileTime::from_last_modification_time(&metadata);
 
     if source_mtime > object_mtime {
@@ -159,12 +159,11 @@ fn need_recompile(source: &str) -> bool {
     }
 }
 
-fn obj_path_from_src_path(src_path: &str) -> String {
+fn obj_path_from_src_path(src_path: &Path) -> PathBuf {
     let outdir = env::var("OUT_DIR").unwrap();
     let mut path = PathBuf::from(Path::new(&outdir).join(src_path));
     path.set_extension("o");
-
-    path.to_string_lossy().to_string()
+    path
 }
 
 fn prepare() -> CompileOptions {
@@ -172,7 +171,7 @@ fn prepare() -> CompileOptions {
     let mut sources = vec![];
 
     for src in DECOMPILER_SOURCE_BASE_CXX.iter() {
-        let path = format!("src/cpp/{}", src);
+        let path = Path::new("src").join("cpp").join(src);
         if need_recompile(&path) {
             sources.push(path);
         } else {
@@ -182,7 +181,11 @@ fn prepare() -> CompileOptions {
 
     for src in DECOMPILER_SOURCE_SLEIGH_YACC.iter() {
         let name = src.split(".").next().unwrap();
-        let path = format!("src/cpp/gen/bison/{}.cpp", name);
+        let path = Path::new("src")
+            .join("cpp")
+            .join("gen")
+            .join("bison")
+            .join(&format!("{}.cpp", name));
 
         if need_recompile(&path) {
             sources.push(path);
@@ -192,7 +195,11 @@ fn prepare() -> CompileOptions {
     }
 
     for src in PROXIES.iter() {
-        let path = format!("src/cpp/bridge/proxies/{}", src);
+        let path = Path::new("src")
+            .join("cpp")
+            .join("bridge")
+            .join("proxies")
+            .join(src);
         if need_recompile(&path) {
             sources.push(path);
         } else {
@@ -205,20 +212,30 @@ fn prepare() -> CompileOptions {
 
 fn main() {
     let compile_opts = prepare();
+    let sleigh_src_file = Path::new("src").join("sleigh.rs");
 
-    let mut target = cxx_build::bridge("src/sleigh.rs");
+    let mut target = cxx_build::bridge(sleigh_src_file);
 
     for obj in compile_opts.objects.iter() {
         target.object(obj);
     }
+    let disasm_src_path= Path::new("src").join("cpp").join("bridge").join("disasm.cpp");
+    let src_cpp = Path::new("src").join("cpp");
+    let src_cpp_gen_bison = Path::new("src").join("cpp").join("gen").join("bison");
+    let src_cpp_gen_flex = Path::new("src").join("cpp").join("gen").join("flex");
+    #[cfg(target_os = "windows")]
+    {
+        target.define("_WINDOWS", "1"); // This is assumed by ghidra, but not defined by msvc, strange.
+        //target.target("x86_64-pc-windows-gnu");
+    }
     target
         .cpp(true)
         .warnings(false)
-        .file("src/cpp/bridge/disasm.cpp")
+        .file(disasm_src_path)
         .files(compile_opts.sources)
         .flag_if_supported("-std=c++14")
-        .include("src/cpp")
-        .include("src/cpp/gen/bison")
-        .include("src/cpp/gen/flex")
+        .include(src_cpp)
+        .include(src_cpp_gen_bison)
+        .include(src_cpp_gen_flex)
         .compile("sleigh");
 }

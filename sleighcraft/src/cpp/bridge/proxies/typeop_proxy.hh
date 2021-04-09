@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_TYPEOP_PROXY
+#define BRIDGE_PROXIES_TYPEOP_PROXY
+
 #include "typeop.hh"
 #include "opbehavior_proxy.hh"
 #include "cover_proxy.hh"
@@ -41,3 +43,5 @@ public:
 
     // TODO: complete the methods
 };
+
+#endif

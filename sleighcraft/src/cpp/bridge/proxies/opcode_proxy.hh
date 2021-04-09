@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_OPCODE_PROXY
+#define BRIDGE_PROXIES_OPCODE_PROXY
+
 #include "op.hh"
 #include "varnode_proxy.hh"
 #include "address_proxy.hh"
@@ -80,3 +82,5 @@ public:
 
     // TODO: complete the methods
 };
+
+#endif

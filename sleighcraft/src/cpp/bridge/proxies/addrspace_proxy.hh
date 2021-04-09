@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_ADDRSPACE_PROXY
+#define BRIDGE_PROXIES_ADDRSPACE_PROXY
+
 #include "space.hh"
 #include "sleighcraft/src/sleigh.rs.h"
 
@@ -59,3 +61,5 @@ public:
 //    bool compare_by_index(const AddrSpaceProxy *a, const AddrSpaceProxy *b) const;
     // TODO: complete the methods
 };
+
+#endif

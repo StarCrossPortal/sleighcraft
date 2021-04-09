@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#ifndef BRIDGE_PROXIES_COVER_PROXY
+#define BRIDGE_PROXIES_COVER_PROXY
+
 #include "cover.hh"
 #include "opcode_proxy.hh"
 class PcodeOp;
@@ -27,3 +29,5 @@ public:
 
     // TODO: implemented the methods
 };
+
+#endif
