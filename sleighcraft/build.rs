@@ -226,7 +226,7 @@ fn main() {
     #[cfg(target_os = "windows")]
     {
         target.define("_WINDOWS", "1"); // This is assumed by ghidra, but not defined by msvc, strange.
-        target.target("x86_64-pc-windows-gnu");
+        //target.target("x86_64-pc-windows-gnu");
     }
     target
         .cpp(true)
