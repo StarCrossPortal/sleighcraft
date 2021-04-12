@@ -171,7 +171,7 @@ But we have already planned several goals in the future:
 - [x] decoder (linear disassembler) with IR (based on ghidra)
 - [ ] encoder (single instruction assemble) (based on ghidra)
 - [ ] universal binary analysis algorithms (CFG generation, data flow information)
-- [ ] C API
+- [ ] C API/More language bindings
 - [ ] PCode emulator
 - [ ] Analysis Framework
 - [ ] symbolic execution
