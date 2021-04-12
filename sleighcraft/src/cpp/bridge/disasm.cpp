@@ -75,7 +75,7 @@ void SleighProxy::decode_with(RustAssemblyEmit& asm_emit, RustPcodeEmit& pcode_e
 void RustLoadImageProxy::loadFill(uint1 *ptr, int4 size, const Address &address) {
     Address addr = const_cast <Address& > (address);
     uint8_t* array = (uint8_t*)ptr;
-    rust::Slice<::std::uint8_t> slice{array,16};
+    rust::Slice<::std::uint8_t> slice{array,(unsigned long)size};
     const auto addr_proxy = AddressProxy{addr};
     load_image.load_fill(slice, addr_proxy);
 }
