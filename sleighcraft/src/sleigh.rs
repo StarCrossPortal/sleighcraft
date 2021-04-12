@@ -728,7 +728,10 @@ fn load_preset() -> HashMap<&'static str, &'static str> {
     let mut map = HashMap::new();
     macro_rules! def_arch {
         ($name: expr) => {
-            map.insert($name, include_str!(concat!("sla/", $name, ".sla")));
+            // presets are used across the whole lifetime, it's safe to ignore
+            // the lifetime by leaking its names' memory
+            let name: &'static str = Box::leak($name.to_lowercase().into_boxed_str());
+            map.insert(name, include_str!(concat!("sla/", $name, ".sla")));
         };
     }
     def_arch!("6502");
@@ -924,7 +927,7 @@ impl<'a> SleighBuilder<'a> {
 }
 pub fn arch(name: &str) -> Result<&str> {
     let content = *PRESET
-        .get(name)
+        .get(&name.to_lowercase().as_str())
         .ok_or(Error::ArchNotFound(name.to_string()))?;
     Ok(content)
 }
@@ -940,6 +943,26 @@ pub fn arch(name: &str) -> Result<&str> {
 
 #[test]
 fn test_x86() {
+    let mut sleigh_builder = SleighBuilder::default();
+    let spec = arch("x86").unwrap();
+    let buf = [0x90, 0x32, 0x31];
+    let mut loader = PlainLoadImage::from_buf(&buf, 0);
+    sleigh_builder.loader(&mut loader);
+    sleigh_builder.spec(spec);
+    let mut asm_emit = CollectingAssemblyEmit::default();
+    let mut pcode_emit = CollectingPcodeEmit::default();
+    sleigh_builder.asm_emit(&mut asm_emit);
+    sleigh_builder.pcode_emit(&mut pcode_emit);
+    let mut sleigh = sleigh_builder.try_build().unwrap();
+
+    sleigh.decode(0).unwrap();
+
+    println!("{:?}", asm_emit.asms);
+    println!("{:?}", pcode_emit.pcode_asms);
+}
+
+#[test]
+fn test_x86_case_ignoring() {
     let mut sleigh_builder = SleighBuilder::default();
     let spec = arch("x86").unwrap();
     let buf = [0x90, 0x32, 0x31];
