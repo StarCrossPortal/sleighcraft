@@ -11,6 +11,13 @@ Features:
 
 BinCraft is seperated into multiple parts, while currently only the first one, `sleighcraft` is working.
 
+NOTE:
+
+this project is still in early stage.
+Large scale API modifications, bugs are expected.
+Documentations are yet to be complete.
+Star us, we will try our best to make it complete and better. 🥺 Please, do it.
+
 
 ## SleighCraft
 
