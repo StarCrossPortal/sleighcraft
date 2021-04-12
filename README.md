@@ -181,4 +181,4 @@ But we have already planned several goals in the future:
 
 This is a project started by [StarCrossTech](https://www.starcross.cn/#/) ret2lab.
 
-Any contribution through pull request are welcome. ✌️
+Any contribution through pull request is welcome. ✌️
