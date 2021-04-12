@@ -74,9 +74,6 @@ Architectures comparision with capstone (according to [capstone arch list](https
 |System Z|❌|✔️|
 |xCore|❌|✔️|
 
-
-
-
 ### How to install
 
 #### Rust
@@ -186,6 +183,6 @@ But we have already planned several goals in the future:
 
 ## About Us
 
-This is a project started by [StarCrossTech](https://www.starcross.cn/#/) ret2lab.
+This is a project started by [StarCrossTech](https://www.starcross.tech/#/) ret2lab.
 
 Any contribution through pull request is welcome. ✌️
