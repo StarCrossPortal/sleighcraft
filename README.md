@@ -1,30 +1,74 @@
-# Bincraft - Binary Analysis Craft
+# BinCraft - Binary Analysis Craft
 
-Bincraft is a (soon-to-be) binary analysis toolkit that serves like [capstone](https://www.capstone-engine.org/) or [angr](https://github.com/angr/angr) based on [ghidra](https://ghidra-sre.org/).
+BinCraft is a future binary analysis toolkit.
 
-Our goal is to provide a binary analysis toolkit that is:
+Features:
 
-- extensible
-- library-like (composible)
+- Layered Architecture: composed by multiple libraries that can be used seperatedly.
+- Written in Rust: high performance, safe interface, no VM.
+- Python API: easy scripting. In the future, C API will also be provided, allows to bind to more programming languages.
+- Extensible: with [sleigh DSL](https://ghidra.re/courses/languages/html/sleigh.html), new architecture is easy to add.
 
-So that people could freely select what they want and build the things they want.
+BinCraft is seperated into multiple parts, while currently only the first one, `sleighcraft` is working.
 
-## Plan
 
-We planed big, but we needs to start small.
+## SleighCraft
 
-Our plan includes:
+`SleighCraft` is a decoder (or, linear disassembler) based on ghidra's decompiler implementation. Sleighcraft can be used in Rust or Python, with both high-level and low-level API.
 
-- [x] decoder (linear disassembler) with IR (based on ghidra)
-- [ ] encoder (single instruction assemble) (based on ghidra)
-- [ ] universal binary analysis algorithms (high-level enough to be used anywhere)
-- [ ] DECOMPILER! yay!
+In general, `sleighcraft` is just like [capstone](https://www.capstone-engine.org/) but with IR and more archs.
 
-Our plan is to split them up into several crates, use the beloved Rust to write as much as we can. So, as for now, we only have `slgiehcraft` that could do disassemble.
+Features:
 
-## Sleighcraft
+- Rust based API and Python scripting API.
+- Decoding with IR as the semantic meaning.
+- Archs: **110** architectures.
 
-Sleighcraft is a decoder (or, linear disassembler) based on ghidra's decompiler implementation. Sleighcraft can be used in Rust or Python, with both high-level and low-level API.
+️️✔️: provided
+
+❌: not provided
+
+🚧: in construction
+
+🤔: not sure, maybe not
+
+Comparison with capstone:
+
+|Feature|SleighCraft| Capstone Engine |
+|-------|----------|----------|
+|disassemble| ✔️ |  ✔️ | 
+|IR|✔️️|❌|
+|C API|🚧|✔️|
+|custom architecture|️✔️|❌|
+
+Architectures comparision with capstone (according to [capstone arch list](https://www.capstone-engine.org/arch.html)):
+
+|Arch Names|SleighCraft| Capstone Engine |
+|----------|-----------|-----------------|
+|6502|✔️|🤔|
+|6805|✔️|🤔|
+|8051|✔️|🤔|
+|8048|✔️|🤔|
+|8085|✔️|🤔|
+|68000|✔️|🤔|
+|aarch64(armv8)|✔️|️️✔️|
+|arm|✔️|️️✔️|
+|cp1600|✔️|🤔|
+|cr16|✔️|🤔|
+|avr8|✔️|️️🤔|
+|dalvik|✔️|🤔|
+|jvm|✔️|🤔|
+|mips|✔️|️️✔️|
+|powerpc|✔️|️️✔️|
+|sparc|✔️|️️✔️|
+|tricore|✔️|🤔|
+|riscv|✔️|🤔|
+|z80|✔️|🤔|
+|System Z|❌|✔️|
+|xCore|❌|✔️|
+
+
+
 
 ### How to install
 
@@ -87,4 +131,48 @@ for asm in sleigh.disasm(0):
     print()
 ```
 
-TODO: add Rust example
+Rust (kinda low level):
+
+```Rust
+// Overall procedure:
+// 1. get the spec, this is where we know how to decode anything
+// 2. get a loader, this is where we fill the input bytes to the engine.
+// A predefined loader is provided: `PlainLoadImage`, which sets
+// the things to decode by using a single buf.
+// 3. set the AssemblyEmit and PcodeEmit instance, these are two
+// traits that defines the callback at the decode time.
+// 4. do the decode
+use sleighcraft::*;
+let mut sleigh_builder = SleighBuilder::default();
+let spec = arch("x86").unwrap();
+let buf = [0x90, 0x32, 0x31];
+let mut loader = PlainLoadImage::from_buf(&buf, 0);
+sleigh_builder.loader(&mut loader);
+sleigh_builder.spec(spec);
+let mut asm_emit = CollectingAssemblyEmit::default();
+let mut pcode_emit = CollectingPcodeEmit::default();
+sleigh_builder.asm_emit(&mut asm_emit);
+sleigh_builder.pcode_emit(&mut pcode_emit);
+let mut sleigh = sleigh_builder.try_build().unwrap();
+
+sleigh.decode(0).unwrap();
+
+println!("{:?}", asm_emit.asms);
+println!("{:?}", pcode_emit.pcode_asms);
+```
+
+A more detailed documentation of Rust API is still under development.
+
+## In the Future
+
+Currently we are in the early stage of the project.
+But we have already planned several goals in the future:
+
+- [x] decoder (linear disassembler) with IR (based on ghidra)
+- [ ] encoder (single instruction assemble) (based on ghidra)
+- [ ] universal binary analysis algorithms (CFG generation, data flow information)
+- [ ] C API
+- [ ] PCode emulator
+- [ ] Analysis Framework
+- [ ] symbolic execution
+- [ ] customizable (with DSL, like sleigh to decoder) loader
