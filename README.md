@@ -176,3 +176,9 @@ But we have already planned several goals in the future:
 - [ ] Analysis Framework
 - [ ] symbolic execution
 - [ ] customizable (with DSL, like sleigh to decoder) loader
+
+## About Us
+
+This is a project started by [StarCrossTech](https://www.starcross.cn/#/) ret2lab.
+
+Any contribution through pull request are welcome. ✌️
