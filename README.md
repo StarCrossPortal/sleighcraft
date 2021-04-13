@@ -1,3 +1,5 @@
+
+![logo](./logo.jpeg)
 # BinCraft - Binary Analysis Craft
 
 BinCraft is a future binary analysis toolkit.
