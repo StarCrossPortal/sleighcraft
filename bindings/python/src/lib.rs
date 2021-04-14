@@ -271,7 +271,7 @@ impl Sleigh {
         let start: u64 = start.extract().unwrap();
 
         let mut sleigh_builder = SleighBuilder::default();
-        let mut loader = PlainLoadImage::from_buf(self.code.as_ref().unwrap().as_ref(), 0);
+        let mut loader = PlainLoadImage::from_buf(self.code.as_ref().unwrap().as_ref(), start);
         sleigh_builder.loader(&mut loader);
         sleigh_builder.spec(self.spec.as_ref().unwrap().as_str());
 
