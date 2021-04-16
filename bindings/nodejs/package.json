@@ -1,0 +1,14 @@
+{
+  "name": "bincraft",
+  "version": "0.1.0",
+  "description": "nodejs binding for bincraft",
+  "main": "lib/index.js",
+  "author": "ios <ios@starcross.cn>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "neon-cli": "^0.8.0"
+  },
+  "scripts": {
+    "install": "neon build"
+  }
+}
