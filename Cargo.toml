@@ -2,5 +2,6 @@
 
 members = [
     "sleighcraft",
-    "bindings/python"
+    "bindings/python",
+    "bindings/nodejs/native"
 ]
