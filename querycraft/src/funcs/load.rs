@@ -10,7 +10,6 @@ use rusqlite::{
     Error
 };
 use rand::{thread_rng, Rng};
-use anyhow::anyhow;
 
 #[derive(Debug)]
 enum LoadError {
