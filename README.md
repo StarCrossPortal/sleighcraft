@@ -183,6 +183,6 @@ But we have already planned several goals in the future:
 
 ## About Us
 
-This is a project started by [StarCrossTech](https://www.starcross.tech/#/) ret2lab.
+This is a project started by [StarCrossTech](https://www.starcross.tech/#/) [PortalLab](https://github.com/StarCrossPortal).
 
 Any contribution through pull request is welcome. ✌️
