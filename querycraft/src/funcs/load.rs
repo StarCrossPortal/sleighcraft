@@ -12,6 +12,7 @@ use rusqlite::{
     types::{ToSqlOutput, Value},
     Connection, Error, Result,
 };
+use crate::util::valid_table_name;
 
 #[derive(Debug)]
 enum LoadError {
@@ -130,9 +131,7 @@ fn do_load<'a>(conn: ConnectionRef, ctx: &Context) -> Result<ToSqlOutput<'a>> {
     } else {
         format!("qc_load_res_{}", rand_id)
     };
-    if !out_table_name
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == '_')
+    if !valid_table_name(&out_table_name)
     {
         return Err(Error::UserFunctionError(Box::new(
             LoadError::InvalidTableName,

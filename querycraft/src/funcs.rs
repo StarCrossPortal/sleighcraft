@@ -1,2 +1,2 @@
-pub(crate) mod dummy;
 pub(crate) mod load;
+pub(crate) mod disasm;

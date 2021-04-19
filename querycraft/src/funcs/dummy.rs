@@ -1,3 +1,4 @@
+//! Dummy UDF implement, can be used as a template
 use rusqlite::{
     Connection,
     Result,

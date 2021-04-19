@@ -1,4 +1,5 @@
 mod funcs;
+mod util;
 
 use std::os::raw::{c_char, c_int};
 
@@ -28,8 +29,7 @@ pub extern "C" fn sqlite3_extension_init(
 
 fn querycraft_init(db: *mut ffi::sqlite3) -> Result<()> {
     let conn = unsafe { Connection::from_handle(db)? };
-    eprintln!("inited dummy module {:?}", db);
-    funcs::dummy::dummy_func_init(&conn)?;
     funcs::load::load_func_init(&conn)?;
+    funcs::disasm::disasm_func_init(&conn)?;
     Ok(())
 }
