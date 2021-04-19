@@ -179,28 +179,29 @@ This is a currently in development future.
 Demo only support for disassembly bytes into table is available. One can do this using the demo:
 
 ```sqlite
+sqlite> .load ./libquerycraft.so
 sqlite> select qc_disasm("bytes", X'319090', "x86", "qc_out_asm", "qc_out_pcode");
 1
 sqlite> select * from qc_out_asm;
 ram|0|XOR|word ptr [BX + SI + 0x90],DX
 sqlite> select * from qc_out_pcode;
-ram|0|INT_ADD|register|12|2|register|24|2|unique|4736|2|
-ram|0|INT_ADD|unique|4736|2|const|144|2|unique|4992|2|
-ram|0|CALLOTHER|const|0|4|register|262|2|unique|14336|4|rest_vars: []
-ram|0|COPY|const|0|1||||register|512|1|
-ram|0|COPY|const|0|1||||register|523|1|
-ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
-ram|0|INT_XOR|unique|30848|2|register|8|2|unique|30848|2|
-ram|0|STORE|const|94479501128016|8|unique|14336|4||||rest_vars: []
-ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
-ram|0|INT_SLESS|unique|30848|2|const|0|2|register|519|1|
-ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
-ram|0|INT_EQUAL|unique|30848|2|const|0|2|register|518|1|
-ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
-ram|0|INT_AND|unique|30848|2|const|255|2|unique|55552|2|
-ram|0|POPCOUNT|unique|55552|2||||unique|55680|1|
-ram|0|INT_AND|unique|55680|1|const|1|1|unique|55808|1|
-ram|0|INT_EQUAL|unique|55808|1|const|0|1|register|514|1|
+ram|0|INT_ADD|register|12|2|register|24|2||||unique|4736|2|
+ram|0|INT_ADD|unique|4736|2|const|144|2||||unique|4992|2|
+ram|0|CALLOTHER|const|0|4|register|262|2|unique|4992|2|unique|14336|4|
+ram|0|COPY|const|0|1|||||||register|512|1|
+ram|0|COPY|const|0|1|||||||register|523|1|
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_XOR|unique|30848|2|register|8|2||||unique|30848|2|
+ram|0|STORE|const|94230195853072|8|unique|14336|4|unique|30848|2||||
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_SLESS|unique|30848|2|const|0|2||||register|519|1|
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_EQUAL|unique|30848|2|const|0|2||||register|518|1|
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_AND|unique|30848|2|const|255|2||||unique|55552|2|
+ram|0|POPCOUNT|unique|55552|2|||||||unique|55680|1|
+ram|0|INT_AND|unique|55680|1|const|1|1||||unique|55808|1|
+ram|0|INT_EQUAL|unique|55808|1|const|0|1||||register|514|1|
 ```
 
 ## In the Future

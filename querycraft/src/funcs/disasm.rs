@@ -65,6 +65,9 @@ fn prepare_output_tables(db: &ConnectionRef, asm_table: &str, pcode_table: &str)
             opr2_space STRING,
             opr2_offset STRING,
             opr2_size INT,
+            opr3_space STRING,
+            opr3_offset STRING,
+            opr3_size INT,
             out_space STRING,
             out_offset STRING,
             out_size INT,
@@ -131,9 +134,14 @@ fn do_disasm_bytes<'a>(db: ConnectionRef, ctx: &Context) -> Result<ToSqlOutput<'
         } else {
             (None, None, None)
         };
+        let (var3_space, var3_off, var3_size) = if vars.len() >= 3 {
+            (Some(vars[2].space.to_string()), Some(vars[2].offset), Some(vars[2].size))
+        } else {
+            (None, None, None)
+        };
 
         // temp solution so that we don't lose the information of vars
-        let comments = if vars.len() >= 3 {
+        let comments = if vars.len() >= 4 {
             Some(format!("rest_vars: {:?}", &vars[3..]))
         } else {
             None
@@ -144,7 +152,7 @@ fn do_disasm_bytes<'a>(db: ConnectionRef, ctx: &Context) -> Result<ToSqlOutput<'
             None => (None, None, None)
         };
 
-        let sql = format!("INSERT INTO {} values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", output_pcode_name);
+        let sql = format!("INSERT INTO {} values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", output_pcode_name);
         db.execute(&sql, params![
             space,
             offset,
@@ -155,6 +163,9 @@ fn do_disasm_bytes<'a>(db: ConnectionRef, ctx: &Context) -> Result<ToSqlOutput<'
             var2_space,
             var2_off,
             var2_size,
+            var3_space,
+            var3_off,
+            var3_size,
             out_space,
             out_off,
             out_size,
