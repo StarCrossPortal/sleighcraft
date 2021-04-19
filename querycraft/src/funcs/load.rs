@@ -77,7 +77,6 @@ impl From<LoadError> for Error {
 impl std::error::Error for LoadError {}
 
 fn insert_elf_data(db: ConnectionRef, bin: &[u8], elf: &elf::Elf, table_name: &str) -> Result<()> {
-    // TODO: use real segname
     let mut idx = 0;
     for ph in elf.program_headers.iter() {
         if ph.p_type == elf::program_header::PT_LOAD {
@@ -98,6 +97,7 @@ fn insert_elf_data(db: ConnectionRef, bin: &[u8], elf: &elf::Elf, table_name: &s
                 "INSERT INTO {}(ADDR, NAME, BYTES) VALUES (?, ?, ?);",
                 table_name
             );
+            // TODO: use real segname
             let seg_name = format!("segment_{}", idx);
             idx += 1;
 
