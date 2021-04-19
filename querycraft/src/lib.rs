@@ -18,7 +18,7 @@ pub extern "C" fn sqlite3_extension_init(
     unsafe {
         ffi::sqlite3_api = p_api;
     }
-    let res = dummy_init(db);
+    let res = querycraft_init(db);
     if let Err(err) = res {
         return unsafe { to_sqlite_error(&err, pz_err_msg) };
     }
@@ -26,8 +26,10 @@ pub extern "C" fn sqlite3_extension_init(
     ffi::SQLITE_OK
 }
 
-fn dummy_init(db: *mut ffi::sqlite3) -> Result<()> {
+fn querycraft_init(db: *mut ffi::sqlite3) -> Result<()> {
     let conn = unsafe { Connection::from_handle(db)? };
     eprintln!("inited dummy module {:?}", db);
-    funcs::dummy::dummy_func_init(&conn)
+    funcs::dummy::dummy_func_init(&conn)?;
+    funcs::load::load_func_init(&conn)?;
+    Ok(())
 }

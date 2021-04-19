@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 sleighcraft = { path = "../sleighcraft" }
 rand = "0.8"
+goblin = "0.4.0"
 
 [dependencies.rusqlite]
 # This is a temp solution, before dynamic extension is merged.
