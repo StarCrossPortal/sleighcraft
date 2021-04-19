@@ -10,6 +10,7 @@ Features:
 - Written in Rust: high performance, safe interface, no VM.
 - Python API: easy scripting. In the future, C API will also be provided, allows to bind to more programming languages.
 - Extensible: with [sleigh DSL](https://ghidra.re/courses/languages/html/sleigh.html), new architecture is easy to add.
+- (Currently In Development) **SQL based binary analysis**
 
 BinCraft is seperated into multiple parts, while currently only the first one, `sleighcraft` is working.
 
@@ -168,6 +169,39 @@ println!("{:?}", pcode_emit.pcode_asms);
 ```
 
 A more detailed documentation of Rust API is still under development.
+
+## QueryCraft (In-Development)
+
+QueryCraft is a SQL based binary analysis, its goal is to allow analyzer write SQL to fetch information (both raw and analyzed) from binary.
+
+This is a currently in development future.
+
+Demo only support for disassembly bytes into table is available. One can do this using the demo:
+
+```sqlite
+sqlite> select qc_disasm("bytes", X'319090', "x86", "qc_out_asm", "qc_out_pcode");
+1
+sqlite> select * from qc_out_asm;
+ram|0|XOR|word ptr [BX + SI + 0x90],DX
+sqlite> select * from qc_out_pcode;
+ram|0|INT_ADD|register|12|2|register|24|2|unique|4736|2|
+ram|0|INT_ADD|unique|4736|2|const|144|2|unique|4992|2|
+ram|0|CALLOTHER|const|0|4|register|262|2|unique|14336|4|rest_vars: []
+ram|0|COPY|const|0|1||||register|512|1|
+ram|0|COPY|const|0|1||||register|523|1|
+ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
+ram|0|INT_XOR|unique|30848|2|register|8|2|unique|30848|2|
+ram|0|STORE|const|94479501128016|8|unique|14336|4||||rest_vars: []
+ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
+ram|0|INT_SLESS|unique|30848|2|const|0|2|register|519|1|
+ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
+ram|0|INT_EQUAL|unique|30848|2|const|0|2|register|518|1|
+ram|0|LOAD|const|94479501128016|8|unique|14336|4|unique|30848|2|
+ram|0|INT_AND|unique|30848|2|const|255|2|unique|55552|2|
+ram|0|POPCOUNT|unique|55552|2||||unique|55680|1|
+ram|0|INT_AND|unique|55680|1|const|1|1|unique|55808|1|
+ram|0|INT_EQUAL|unique|55808|1|const|0|1|register|514|1|
+```
 
 ## In the Future
 

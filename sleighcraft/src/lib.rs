@@ -14,5 +14,6 @@
 // limitations under the License.
 pub mod error;
 pub mod sleigh;
+pub mod prelude;
 
 pub use sleigh::*;
