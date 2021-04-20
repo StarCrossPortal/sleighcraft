@@ -19,35 +19,30 @@ use sleighcraft::{
 };
 use sleighcraft::{Address, Instruction, PcodeInstruction, PcodeVarnodeData};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq)]
 pub struct JsAddr {
     space: String,
     offset: u64,
 }
-
+impl ToString for JsAddr {
+    fn to_string(&self) -> String {
+        format!("{}({})", self.space, self.offset)
+    }
+}
 impl JsAddr {
-    pub fn from_rust(addr: &Address) -> Result<JsAddr, Throw> {
-        Ok(Self {
-            space: addr.space.to_string(),
-            offset: addr.offset,
-        })
+    pub fn from_rust<'a, C: Context<'a>>(cx: &mut C, addr: &Address) -> JsResult<'a, JAddr> {
+
+        let space = cx.string(addr.space.clone()).upcast::<JsValue>();
+        let offset = cx.number(addr.offset as u32).upcast::<JsValue>();
+
+        Ok(JAddr::new(cx, vec![space, offset])?)
     }
+    pub fn from_js<'a, C: Context<'a>>(self, cx: &mut C) -> JsResult<'a, JAddr> {
+        let space = cx.string(self.space.clone()).upcast::<JsValue>();
+        let offset = cx.number(self.offset as u32).upcast::<JsValue>();
 
-    pub fn addr_to_object<'a, C: Context<'a>>(
-        cx: &mut C,
-        rust_addr: &JsAddr,
-    ) -> JsResult<'a, JsObject> {
-        let js_addr = JsObject::new(cx);
-
-        let js_space = cx.string(&rust_addr.space);
-        let js_offset = cx.number(rust_addr.offset as f64);
-
-        js_addr.set(cx, "offset", js_offset)?;
-        js_addr.set(cx, "space", js_space)?;
-
-        Ok(js_addr)
+        Ok(JAddr::new(cx, vec![space, offset])?)
     }
-
 }
 
 #[derive(Clone)]
@@ -57,46 +52,95 @@ pub struct JsPcode {
     vars: Vec<JsVarnodeData>,
     out_var: Option<JsVarnodeData>,
 }
-
+impl ToString for JsPcode {
+    fn to_string(&self) -> String {
+        let mut vars_str = String::new();
+        for v in self.vars.iter() {
+            vars_str.push_str(",");
+            vars_str.push_str(&v.to_string());
+        }
+        if let Some(out_var) = &self.out_var {
+            format!(
+                "Pcode@{}({}, [{}], {})",
+                self.addr.to_string(),
+                self.opcode,
+                vars_str,
+                out_var.to_string()
+            )
+        } else {
+            format!(
+                "Pcode@{}({}, [{}])",
+                self.addr.to_string(),
+                self.opcode,
+                vars_str
+            )
+        }
+    }
+}
 impl JsPcode {
-    pub fn from_rust(pcode: &PcodeInstruction) -> Result<JsPcode, Throw> {
-        let addr = JsAddr::from_rust(&pcode.addr)?;
-        let opcode = pcode.opcode.to_string();
-        let vars = pcode
+    pub fn from_rust<'a, C: Context<'a>>(
+        cx: &mut C,
+        pcode: &PcodeInstruction,
+    ) -> JsResult<'a, JPcode> {
+        let _addr = JsAddr::from_rust(cx, &pcode.addr)?.upcast();
+        let _opcode = cx
+            .string(pcode.opcode.to_string())
+            .downcast::<JsValue>()
+            .unwrap();
+
+        let vars: Vec<Handle<JVarnodeData>> = pcode
             .vars
             .iter()
-            .map(|v| JsVarnodeData::from_rust(v).unwrap())
+            .map(|v| JsVarnodeData::from_rust(cx, v).unwrap())
             .collect();
-        let out_var = pcode.out_var.as_ref().map(|v| JsVarnodeData::from_rust(&v).unwrap());
+        let js_vars: Handle<JsArray> = JsArray::new(cx, vars.len() as u32);
+        for (i, var) in vars.iter().enumerate() {
+            let js_var = var.clone();
+            js_vars.set(cx, i as u32, js_var)?;
+        }
 
-        Ok(Self {
-            addr,
-            opcode,
-            vars,
-            out_var,
-        })
+        let option_out_var = pcode
+            .out_var
+            .as_ref()
+            .map(|v| JsVarnodeData::from_rust(cx, &v).unwrap().clone());
+        let js_out_var = JsArray::new(cx, option_out_var.iter().len() as u32);
+        if let Some(out_var) = &option_out_var {
+            let var = out_var.clone();
+            js_out_var.set(cx, 0, var)?;
+        } else {
+            let null = cx.null();
+            js_out_var.set(cx, 0, null)?;
+        }
+        let js_vars = js_vars.as_value(cx);
+        let _js_out_var = js_out_var.as_value(cx);
+
+        Ok(JPcode::new(cx, vec![_addr, _opcode, js_vars, _js_out_var])?)
     }
-    pub fn pcode_to_object<'a, C: Context<'a>>(cx: &mut C, pcode: &JsPcode) -> JsResult<'a, JsObject> {
-        let js_pcode = JsObject::new(cx);
-
-        let js_addr = JsAddr::addr_to_object(cx, &pcode.addr)?;
-        let js_opcode = cx.string(&pcode.opcode);
-
-        let js_vars = JsArray::new(cx, pcode.vars.len() as u32);
-        for (index,obj) in pcode.vars.iter().enumerate(){
-            let varnode = JsVarnodeData::varnode_data_to_object(cx, obj)?;
-            js_vars.set(cx,index as u32, varnode)?;
+    pub fn from_js<'a, C: Context<'a>>(self, cx: &mut C) -> JsResult<'a, JPcode> {
+        let _addr = self.addr.from_js(cx)?.upcast();
+        let _opcode = cx
+            .string(self.opcode.to_string())
+            .downcast::<JsValue>()
+            .unwrap();
+        let js_vars: Handle<JsArray> = JsArray::new(cx, self.vars.len() as u32);
+        for (i, var) in self.vars.iter().enumerate() {
+            let js_var = var.clone().from_js(cx)?;
+            js_vars.set(cx, i as u32, js_var)?;
         }
 
-        js_pcode.set(cx, "addr", js_addr)?;
-        js_pcode.set(cx, "opcode", js_opcode)?;
-        js_pcode.set(cx, "vars", js_vars)?;
-        if let Some(out_var) = &pcode.out_var { 
-            let js_out_var = JsVarnodeData::varnode_data_to_object(cx, out_var)?;
-            js_pcode.set(cx, "out_var", js_out_var)?;
+        let js_out_var = JsArray::new(cx, self.out_var.iter().len() as u32);
+        if let Some(out_var) = &self.out_var {
+            let o_var = out_var.clone().from_js(cx)?;
+            js_out_var.set(cx, 0, o_var)?;
+        } else {
+            let null = cx.null();
+            js_out_var.set(cx, 0, null)?;
         }
-        
-        Ok(js_pcode)
+
+        let js_vars = js_vars.as_value(cx);
+        let _js_out_var = js_out_var.as_value(cx);
+
+        Ok(JPcode::new(cx, vec![_addr, _opcode, js_vars, _js_out_var])?)
     }
 }
 
@@ -107,26 +151,39 @@ pub struct JsVarnodeData {
     offset: usize,
 }
 
-impl JsVarnodeData {
-    pub fn from_rust(varnode: &PcodeVarnodeData) -> Result<JsVarnodeData, Throw> {
-        Ok(Self {
-            space: varnode.space.to_string(),
-            size: varnode.size,
-            offset: varnode.offset,
-        })
+impl ToString for JsVarnodeData {
+    fn to_string(&self) -> String {
+        format!("varnode@{}({}):{}", self.space, self.size, self.offset)
     }
-    pub fn varnode_data_to_object<'a, C: Context<'a>>(cx: &mut C, varnode: &JsVarnodeData) -> JsResult<'a, JsObject> {
-        let js_varnode_data = JsObject::new(cx);
+}
 
-        let js_space = cx.string(&varnode.space);
-        let js_size = cx.number(varnode.size as f64);
-        let js_offset = cx.number(varnode.offset as f64);
+impl JsVarnodeData {
+    pub fn from_rust<'a, C: Context<'a>>(
+        cx: &mut C,
+        varnode: &PcodeVarnodeData,
+    ) -> JsResult<'a, JVarnodeData> {
+        let space = cx
+            .string(varnode.space.to_string())
+            .downcast::<JsValue>()
+            .unwrap();
+        let size = cx.number(varnode.size).downcast::<JsValue>().unwrap();
+        let offset = cx
+            .number(varnode.offset as u32)
+            .downcast::<JsValue>()
+            .unwrap();
 
-        js_varnode_data.set(cx, "space", js_space)?;
-        js_varnode_data.set(cx, "size", js_size)?;
-        js_varnode_data.set(cx, "offset", js_offset)?;
+        Ok(JVarnodeData::new(cx, vec![space, size, offset])?)
+    }
 
-        Ok(js_varnode_data)
+    pub fn from_js<'a, C: Context<'a>>(self, cx: &mut C) -> JsResult<'a, JVarnodeData> {
+        let space = cx
+            .string(self.space.to_string())
+            .downcast::<JsValue>()
+            .unwrap();
+        let size = cx.number(self.size).downcast::<JsValue>().unwrap();
+        let offset = cx.number(self.offset as u32).downcast::<JsValue>().unwrap();
+
+        Ok(JVarnodeData::new(cx, vec![space, size, offset])?)
     }
 }
 
@@ -139,40 +196,41 @@ pub struct JsInstruction {
 }
 
 impl JsInstruction {
-    pub fn from_rust_no_pcodes(inst: &Instruction) -> Result<JsInstruction, Throw> {
-        let addr = JsAddr::from_rust(&inst.addr)?;
-        let mnemonic = inst.mnemonic.to_string();
-        let body = inst.body.to_string();
-        let pcodes = vec![];
-
-        Ok(JsInstruction {
-            addr,
-            mnemonic,
-            body,
-            pcodes,
-        })
-    }
-
-    pub fn instruction_to_object<'a, C: Context<'a>>(
+    pub fn from_rust_no_pcodes<'a, C: Context<'a>>(
         cx: &mut C,
-        inst: &JsInstruction,
-    ) -> JsResult<'a, JsObject> {
-        let js_instruction = JsObject::new(cx);
+        inst: &Instruction,
+    ) -> JsResult<'a, JInstruction> {
+        let addr = JsAddr::from_rust(cx, &inst.addr)?
+            .downcast::<JsValue>()
+            .unwrap();
+        let mnemonic = cx
+            .string(inst.mnemonic.to_string())
+            .downcast::<JsValue>()
+            .unwrap();
+        let body = cx
+            .string(inst.body.to_string())
+            .downcast::<JsValue>()
+            .unwrap();
+        let pcodes = JsArray::new(cx, 0).as_value(cx);
+        Ok(JInstruction::new(cx, vec![addr, mnemonic, body, pcodes])?)
+    }
+}
 
-        let js_addr = JsAddr::addr_to_object(cx, &inst.addr)?;
-        let js_mnemonic = cx.string(&inst.mnemonic);
-        let js_body = cx.string(&inst.body);
-
-        let js_pcodes = JsArray::new(cx, inst.pcodes.len() as u32);
-        for (index, pcode) in inst.pcodes.iter().enumerate() {
-            let js_pcode = JsPcode::pcode_to_object(cx, pcode)?;
-            js_pcodes.set(cx, index as u32, js_pcode)?;
+impl ToString for JsInstruction {
+    fn to_string(&self) -> String {
+        let mut pcode_str = String::new();
+        for pcode in self.pcodes.iter() {
+            pcode_str.push_str(&pcode.to_string());
+            pcode_str.push_str(", ");
         }
-        js_instruction.set(cx, "addr", js_addr)?;
-        js_instruction.set(cx, "mnemonic", js_mnemonic)?;
-        js_instruction.set(cx, "body", js_body)?;
-        js_instruction.set(cx, "pcodes", js_pcodes)?;
-        Ok(js_instruction)
+
+        format!(
+            "Inst@{} {} {} pcodes=[{}]",
+            self.addr.to_string(),
+            self.mnemonic,
+            self.body,
+            pcode_str
+        )
     }
 }
 pub struct Sleigh {
@@ -196,48 +254,296 @@ impl Sleigh {
 
         let spec = Option::from(arch(spec.value().as_str()).unwrap().to_string());
         let code = Option::from(rust_code);
-        
+
         Ok(Self { spec, code })
     }
 }
 
 declare_types! {
+    pub class JAddr for JsAddr {
+        init(mut cx) {
+            let js_space: Handle<JsString> = cx.argument::<JsString>(0)?;
+            let js_offset: Handle<JsNumber> = cx.argument::<JsNumber>(1)?;
+
+            let space = js_space.value();
+            let offset = js_offset.value() as u64;
+            let js_addr = JsAddr{offset, space};
+            Ok(js_addr)
+        }
+        method space(mut cx) {
+            let this = cx.this();
+            let space = {
+                let guard = cx.lock();
+                let addr = this.borrow(&guard);
+                addr.space.clone()
+            };
+
+            Ok(cx.string(space).upcast())
+        }
+
+        method offset(mut cx) {
+            let this = cx.this();
+            let offset = {
+                let guard = cx.lock();
+                let addr = this.borrow(&guard);
+                addr.offset.clone()
+            };
+
+            Ok(cx.number(offset as u32).upcast())
+        }
+
+        method toString(mut cx) {
+            let this = cx.this();
+            let js_addr = {
+                let guard = cx.lock();
+                let addr = this.borrow(&guard);
+                addr.to_string()
+            };
+
+            Ok(cx.string(&js_addr).upcast())
+
+        }
+
+    }
+
+    pub class JVarnodeData for JsVarnodeData {
+        init(mut cx) {
+            let js_space: Handle<JsString> = cx.argument::<JsString>(0)?;
+            let js_size: Handle<JsNumber> = cx.argument::<JsNumber>(1)?;
+            let js_offset: Handle<JsNumber> = cx.argument::<JsNumber>(2)?;
+
+            let var =JsVarnodeData{space: js_space.value(), size: js_size.value() as u32, offset: js_offset.value() as usize};
+            Ok(var)
+        }
+
+        method space(mut cx) {
+            let this = cx.this();
+            let space = {
+                let guard = cx.lock();
+                let varnode = this.borrow(&guard);
+                varnode.space.clone()
+            };
+
+            Ok(cx.string(space).upcast())
+        }
+        method offset(mut cx) {
+            let this = cx.this();
+            let offset = {
+                let guard = cx.lock();
+                let varnode = this.borrow(&guard);
+                varnode.offset.clone()
+            };
+
+            Ok(cx.number(offset as u32).upcast())
+        }
+        method size(mut cx) {
+            let this = cx.this();
+            let size = {
+                let guard = cx.lock();
+                let varnode = this.borrow(&guard);
+                varnode.size.clone()
+            };
+
+            Ok(cx.number(size).upcast())
+        }
+        method toString(mut cx) {
+            let this = cx.this();
+
+            let js_varnode = {
+                let guard = cx.lock();
+                let varnode = this.borrow(&guard);
+                varnode.to_string()
+            };
+
+            Ok(cx.string(&js_varnode).upcast())
+
+        }
+
+    }
+    pub class JPcode for JsPcode {
+        init(mut cx) {
+            let js_addr = cx.argument::<JsValue>(0)?.downcast::<JAddr>().unwrap();
+            let js_opcode: Handle<JsString> = cx.argument::<JsString>(1)?;
+            let js_vars: Vec<Handle<JsValue>> = cx.argument::<JsArray>(2)?.to_vec(&mut cx)?;
+            let _js_out_vars: Vec<Handle<JsValue>> =cx.argument::<JsArray>(3)?.to_vec(&mut cx)?.to_vec();
+
+            let guard = cx.lock();
+            let addr = js_addr.borrow(&guard).clone();
+            let opcode = js_opcode.value();
+            let mut vars = Vec::new();
+            for varnode in js_vars {
+                let js_var = varnode.downcast::<JVarnodeData>().unwrap().borrow(&guard).clone();
+                vars.push(js_var)
+            }
+
+            let _out_vars = _js_out_vars[0];
+            let defalut_var = PcodeVarnodeData{offset:0,size:0,space:"None".to_string()};
+            let default = JsVarnodeData::from_rust(&mut cx, &defalut_var)?;
+            let js_out_var = {let var= _out_vars.downcast::<JVarnodeData>().unwrap_or(default); let x = var.borrow(&cx.lock()).clone(); x};
+            let mut out_var: Option<JsVarnodeData> = Option::None;
+            if js_out_var.space != "None" {
+                out_var = Option::from(js_out_var);
+            }
+
+            let js_pcode = JsPcode{addr,opcode,vars, out_var};
+            Ok(js_pcode)
+        }
+
+        method addr(mut cx) {
+            let this = cx.this();
+
+            let js_addr= {
+                let guard = cx.lock();
+                let pcode = this.borrow(&guard);
+                pcode.addr.clone()
+            };
+
+            Ok(js_addr.from_js(&mut cx)?.upcast())
+
+        }
+        method opcode(mut cx) {
+            let this = cx.this();
+
+            let js_opcode= {
+                let guard = cx.lock();
+                let pcode = this.borrow(&guard);
+                pcode.opcode.clone()
+            };
+
+            Ok(cx.string(js_opcode).upcast())
+
+        }
+        method vars(mut cx) {
+            let this = cx.this();
+
+            let js_vars= {
+                let guard = cx.lock();
+                let pcode = this.borrow(&guard);
+                pcode.vars.clone()
+            };
+
+            let vars = JsArray::new(&mut cx, js_vars.len() as u32);
+            for (i,varnode) in js_vars.iter().enumerate() {
+                let var = varnode.clone().from_js(&mut cx)?;
+                vars.set(&mut cx, i as u32, var)?;
+            }
+            Ok(vars.upcast())
+
+        }
+
+        method toString(mut cx) {
+            let this = cx.this();
+
+            let js_instruction= {
+                let guard = cx.lock();
+                let pcode = this.borrow(&guard);
+                pcode.to_string()
+            };
+
+            Ok(cx.string(&js_instruction).upcast())
+
+        }
+
+    }
+
+    pub class JInstruction for JsInstruction {
+        init(mut cx) {
+            let js_addr = cx.argument::<JAddr>(0)?;
+            let js_mnemonic: Handle<JsString> = cx.argument::<JsString>(1)?;
+            let js_body: Handle<JsString> = cx.argument::<JsString>(2)?;
+            let js_pcodes = cx.argument::<JsArray>(3)?.to_vec(&mut cx)?;
+
+            let guard = cx.lock();
+            let addr = {let addr = js_addr.borrow(&guard).clone(); addr};
+            let mnemonic = js_mnemonic.value();
+            let body = js_body.value();
+
+            let mut pcodes = Vec::new();
+            for js_pcode in js_pcodes {
+                let pcode = js_pcode.downcast::<JPcode>().unwrap().borrow(&guard).clone();
+                pcodes.push(pcode)
+            }
+
+
+            Ok(JsInstruction{addr,mnemonic,body,pcodes})
+        }
+
+        method toString(mut cx) {
+            let this = cx.this();
+
+            let js_instruction= {
+                let guard = cx.lock();
+                let instruction = this.borrow(&guard);
+                instruction.to_string()
+            };
+
+            Ok(cx.string(&js_instruction).upcast())
+
+        }
+        method addr(mut cx) {
+            let this = cx.this();
+
+            let js_addr= {
+                let guard = cx.lock();
+                let instruction = this.borrow(&guard).clone();
+                instruction.addr.clone()
+            }.from_js(&mut cx)?;
+
+            Ok(js_addr.upcast())
+
+        }
+
+        method mnemonic(mut cx) {
+            let this = cx.this();
+
+            let js_mnemonic= {
+                let guard = cx.lock();
+                let instruction = this.borrow(&guard);
+                instruction.mnemonic.clone()
+            };
+
+            Ok(cx.string(&js_mnemonic).upcast())
+
+        }
+
+        method body(mut cx) {
+            let this = cx.this();
+
+            let js_body= {
+                let guard = cx.lock();
+                let instruction = this.borrow(&guard);
+                instruction.body.clone()
+            };
+
+            Ok(cx.string(&js_body).upcast())
+
+        }
+
+        method pcodes(mut cx) {
+            let this = cx.this();
+
+            let js_pcodes= {
+                let guard = cx.lock();
+                let instruction = this.borrow(&guard);
+                instruction.pcodes.clone()
+            };
+            let pcodes = JsArray::new(&mut cx, js_pcodes.len() as u32);
+            for (i,pcode) in js_pcodes.iter().enumerate() {
+                let pcode = pcode.clone().from_js(&mut cx)?;
+                pcodes.set(&mut cx, i as u32, pcode)?;
+            }
+            Ok(pcodes.upcast())
+        }
+
+    }
+
     pub class JsSleigh for Sleigh {
         init(mut cx) {
 
             let js_spec: Handle<JsString> = cx.argument::<JsString>(0)?;
             let js_code: Handle<JsArray> = cx.argument::<JsArray>(1)?;
-
             let sleigh = Sleigh::from_rust(cx, js_spec, js_code)?;
             Ok(sleigh)
-        }
-
-        method spec(mut cx) {
-            let this = cx.this();
-            let spec = {
-                let guard = cx.lock();
-                let sleigh = this.borrow(&guard);
-                sleigh.spec.clone()
-            }.unwrap();
-
-            Ok(cx.string(&spec).upcast())
-        }
-
-        method code(mut cx) {
-            let this = cx.this();
-            let code = {
-                let guard = cx.lock();
-                let sleigh = this.borrow(&guard);
-                sleigh.code.clone()
-            }.unwrap();
-
-            let js_code = JsArray::new(&mut cx,code.len() as u32);
-            for (index, obj) in code.iter().enumerate() {
-                let js_obj  = cx.number(*obj as f64);
-                js_code.set(&mut cx, index as u32, js_obj)?;
-            }
-
-            Ok(js_code.as_value(&mut cx))
         }
 
         method disasm(mut cx) {
@@ -280,30 +586,41 @@ declare_types! {
 
             let mut pcodes = Vec::new();
             for pcode_asm in pcode_emit.pcode_asms {
-                pcodes.push(JsPcode::from_rust(&pcode_asm)?)
+
+                let js_pcode = JsPcode::from_rust(&mut cx, &pcode_asm)?;
+                pcodes.push(js_pcode)
             }
 
-            let mut rust_insts: Vec<JsInstruction> = Vec::new();
+            let mut handle_insts = Vec::new();
+
             for asm in asm_emit.asms {
-                let js_instruction = JsInstruction::from_rust_no_pcodes(&asm)?;
-                rust_insts.push(js_instruction);
+                let js_instruction = JsInstruction::from_rust_no_pcodes(&mut cx,&asm)?;
+                handle_insts.push(js_instruction)
             }
-
-            for rust_inst in rust_insts.iter_mut() {
+            let guard = cx.lock();
+            for inst in handle_insts.iter_mut() {
                 for pcode in pcodes.iter() {
-                    if pcode.addr == rust_inst.addr {
-                        &rust_inst.pcodes.push(pcode.clone());
+                    let js_pcode = pcode.borrow(&guard);
+                    let mut rust_inst = inst.borrow_mut(&guard);
+                    if js_pcode.addr == rust_inst.addr {
+                        rust_inst.pcodes.push(js_pcode.clone())
                     }
                 }
             }
-            
-            for (index, js_inst) in rust_insts.iter().enumerate() {
-                let js_inst_object = JsInstruction::instruction_to_object(&mut cx, &js_inst)?;
-                js_insts.set(&mut cx, index as u32, js_inst_object)?;
+
+            for (index, js_inst) in handle_insts.iter().enumerate() {
+                let inst = js_inst.clone();
+                js_insts.set(&mut cx, index as u32, inst)?;
             }
             
             Ok(js_insts.as_value(&mut cx))
         }
     }
 }
-register_module!(mut cx, { cx.export_class::<JsSleigh>("Sleigh") });
+register_module!(mut cx, {
+    cx.export_class::<JAddr>("Address")?;
+    cx.export_class::<JPcode>("Pcode")?;
+    cx.export_class::<JVarnodeData>("PcodeVarnodeData")?;
+    cx.export_class::<JInstruction>("Instruction")?;
+    cx.export_class::<JsSleigh>("Sleigh")
+});
