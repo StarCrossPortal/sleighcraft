@@ -39,7 +39,7 @@
   },
   "binary": {
     "module_name": "index",
-    "host": "https://github.com/amilajack/disk-utility/releases/download/",
+    "host": "git+https://github.com/ioo0s/bincraft/releases/download/",
     "remote_path": "{version}",
     "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
     "module_path": "./native",
