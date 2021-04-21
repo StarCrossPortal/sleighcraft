@@ -612,7 +612,7 @@ declare_types! {
                 let inst = js_inst.clone();
                 js_insts.set(&mut cx, index as u32, inst)?;
             }
-            
+
             Ok(js_insts.as_value(&mut cx))
         }
     }
