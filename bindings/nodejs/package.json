@@ -1,7 +1,7 @@
 {
   "name": "bincraft",
   "version": "0.0.1",
-  "description": "nodejs binding for sleighcraft",
+  "description": "nodejs binding for bincraft",
   "main": "lib/index.js",
   "author": "ios <ios@startcross.cn>",
   "repository": {
@@ -24,39 +24,18 @@
   "scripts": {
     "build": "neon build",
     "build-release": "neon build --release",
-    "install": "node-pre-gyp install --fallback-to-build=false || neon build",
-    "lint": "eslint .",
+    "install": "node-pre-gyp install --fallback-to-build=false || neon build --release",
     "package": "node-pre-gyp package",
-    "spec": "jest",
     "test": "npm run build && npm run spec",
     "upload-binary": "npm run build-release && node-pre-gyp package && node-pre-gyp-github publish",
     "version": "npm run build-release"
   },
-  "devDependencies": {
-    "eslint": "^7.16.0",
-    "eslint-config-bliss": "^5.0.0",
-    "jest": "^26.6.3"
-  },
   "binary": {
     "module_name": "index",
-    "host": "git+https://github.com/ioo0s/bincraft/releases/download/",
+    "host": "https://github.com/ioo0s/bincraft/releases/download/",
     "remote_path": "{version}",
-    "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
+    "package_name": "bincraft-{node_abi}-{platform}-{arch}.tar.gz",
     "module_path": "./native",
     "pkg_path": "."
-  },
-  "eslintConfig": {
-    "extends": "bliss",
-    "rules": {
-      "flowtype-errors/show-errors": "off"
-    }
-  },
-  "jest": {
-    "testEnvironment": "node"
-  },
-  "renovate": {
-    "extends": [
-      "bliss"
-    ]
   }
 }

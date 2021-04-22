@@ -1,0 +1,45 @@
+name: publish-npm
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  unix-npm-publish:
+    strategy:
+      matrix:
+        node-version: [14.x]
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v2
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: npm install
+        run: |
+          cd bindings/nodejs
+          npm install
+      - name: Publish
+        env:
+          NODE_PRE_GYP_GITHUB_TOKEN: ${{ secrets.NODE_PRE_GYP_GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: |
+          cd bindings/nodejs
+          COMMIT_MESSAGE=$(git log --format=%B --no-merges -n 1 | tr -d '\n') \
+          npm run upload-binary
+          npm publish
