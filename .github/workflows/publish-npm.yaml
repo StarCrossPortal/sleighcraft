@@ -42,4 +42,9 @@ jobs:
           cd bindings/nodejs
           COMMIT_MESSAGE=$(git log --format=%B --no-merges -n 1 | tr -d '\n') \
           npm run upload-binary
-          npm publish
+      - name: Publish to npm
+        run: cd bindings/nodejs
+        uses: pascalgn/npm-publish-action@1.1.0
+        env:
+          NODE_PRE_GYP_GITHUB_TOKEN: ${{ secrets.NODE_PRE_GYP_GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

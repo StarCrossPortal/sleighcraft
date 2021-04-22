@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "nodejs binding for bincraft",
   "main": "lib/index.js",
-  "author": "ios <ios@startcross.cn>",
+  "author": "ioo0s <ios@startcross.cn>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ioo0s/bincraft.git"
@@ -24,7 +24,7 @@
   "scripts": {
     "build": "neon build",
     "build-release": "neon build --release",
-    "install": "node-pre-gyp install --fallback-to-build=false || neon build --release",
+    "install": "node-pre-gyp install --fallback-to-build=false || neon build",
     "package": "node-pre-gyp package",
     "test": "npm run build && npm run spec",
     "upload-binary": "npm run build-release && node-pre-gyp package && node-pre-gyp-github publish",
