@@ -1,3 +1,5 @@
+
+![logo](./logo.jpeg)
 # BinCraft - Binary Analysis Craft
 
 BinCraft is a future binary analysis toolkit.
@@ -8,6 +10,7 @@ Features:
 - Written in Rust: high performance, safe interface, no VM.
 - Python API: easy scripting. In the future, C API will also be provided, allows to bind to more programming languages.
 - Extensible: with [sleigh DSL](https://ghidra.re/courses/languages/html/sleigh.html), new architecture is easy to add.
+- (Currently In Development) **SQL based binary analysis**
 
 BinCraft is seperated into multiple parts, while currently only the first one, `sleighcraft` is working.
 
@@ -102,6 +105,18 @@ $ maturin build
 $ pip3 install bincraft-0.1.0-cp39-cp39-Arch.whl
 ```
 
+#### Nodejs
+
+```bash
+# quick install it with npm 
+$ npm i bincraft
+
+# or manual, to do this, you need to have rust compiler installed, nodejs and neon
+# better with rustup.
+$ npm install -g neon-cli
+$ neon build
+```
+
 ### How to Use
 
 One could refer to doc.rs to see how Rust binding can be used.
@@ -133,6 +148,38 @@ for asm in sleigh.disasm(0):
         vars = pcode.vars()
         print(f'opcode: {opcode}\t vars: {vars}\t')
     print()
+```
+
+Nodejs binding:
+
+```js
+const Sleigh = require('bincraft');
+//or const Sleigh = require('.');
+
+// init the sleigh engine Sleigh(arch, code) like python
+const sleigh = new Sleigh("x86",[0x90,90]);
+
+// disasm(start_addr) 
+// - start: Default is 0
+const asms = sleigh.disasm();
+
+asms.forEach(asm => {
+    let addr = asm.addr();
+    let mnemonic = asm.mnemonic();
+    let body = asm.body();
+    // dump instruction
+    console.log(`addr: ${addr}\t mnemonic: ${mnemonic}\t body: ${body}`);
+    
+    // And we have IR！
+    let pcodes = asm.pcodes();
+    pcodes.forEach(pcode => {
+        opcode = pcode.opcode();
+        vars = pcode.vars();
+        
+        console.log(`opcode: ${opcode}\t vars: ${vars}`);
+    });
+});
+
 ```
 
 Rust (kinda low level):
@@ -167,6 +214,40 @@ println!("{:?}", pcode_emit.pcode_asms);
 
 A more detailed documentation of Rust API is still under development.
 
+## QueryCraft (In-Development)
+
+QueryCraft is a SQL based binary analysis, its goal is to allow analyzer write SQL to fetch information (both raw and analyzed) from binary.
+
+This is a currently in development future.
+
+Demo only support for disassembly bytes into table is available. One can do this using the demo:
+
+```sqlite
+sqlite> .load ./libquerycraft.so
+sqlite> select qc_disasm("bytes", X'319090', "x86", "qc_out_asm", "qc_out_pcode");
+1
+sqlite> select * from qc_out_asm;
+ram|0|XOR|word ptr [BX + SI + 0x90],DX
+sqlite> select * from qc_out_pcode;
+ram|0|INT_ADD|register|12|2|register|24|2||||unique|4736|2|
+ram|0|INT_ADD|unique|4736|2|const|144|2||||unique|4992|2|
+ram|0|CALLOTHER|const|0|4|register|262|2|unique|4992|2|unique|14336|4|
+ram|0|COPY|const|0|1|||||||register|512|1|
+ram|0|COPY|const|0|1|||||||register|523|1|
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_XOR|unique|30848|2|register|8|2||||unique|30848|2|
+ram|0|STORE|const|94230195853072|8|unique|14336|4|unique|30848|2||||
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_SLESS|unique|30848|2|const|0|2||||register|519|1|
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_EQUAL|unique|30848|2|const|0|2||||register|518|1|
+ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
+ram|0|INT_AND|unique|30848|2|const|255|2||||unique|55552|2|
+ram|0|POPCOUNT|unique|55552|2|||||||unique|55680|1|
+ram|0|INT_AND|unique|55680|1|const|1|1||||unique|55808|1|
+ram|0|INT_EQUAL|unique|55808|1|const|0|1||||register|514|1|
+```
+
 ## In the Future
 
 Currently we are in the early stage of the project.
@@ -183,6 +264,6 @@ But we have already planned several goals in the future:
 
 ## About Us
 
-This is a project started by [StarCrossTech](https://www.starcross.tech/#/) ret2lab.
+This is a project started by [StarCrossTech](https://www.starcross.tech/#/) [PortalLab](https://github.com/StarCrossPortal).
 
 Any contribution through pull request is welcome. ✌️
