@@ -673,6 +673,7 @@ impl LoadImage for PlainLoadImage {
         let size = ptr.len();
         let max = self.start + (self.buf.len() as u64 - 1);
 
+
         for i in 0..size {
             let cur_off = start_off + i as u64;
             if self.start <= cur_off && max >= cur_off {

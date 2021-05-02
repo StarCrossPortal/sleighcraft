@@ -4,7 +4,7 @@ code = [0x55, 0x48, 0x89, 0xE5, 0xBF, 0xC4, 0x05, 0x40]
 
 sleigh = Sleigh("x86", code)
 
-for asm in sleigh.disasm(0):
+for asm in sleigh.disasm(0x123120):
     addr = asm.addr()
     mnem = asm.mnemonic()
     body = asm.body()
