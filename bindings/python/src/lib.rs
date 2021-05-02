@@ -35,6 +35,17 @@ impl ToString for PyAddr {
     }
 }
 
+#[pymethods]
+impl PyAddr {
+    pub fn offset(&self) -> PyResult<u64> {
+        Ok(self.offset)
+    }
+
+    pub fn space(&self) -> PyResult<String> {
+        Ok(self.space.clone())
+    }
+}
+
 #[pyproto]
 impl PyObjectProtocol for PyAddr {
     fn __str__(&self) -> PyResult<String> {
