@@ -1,0 +1,41 @@
+{
+  "name": "bincraft",
+  "version": "0.0.1",
+  "description": "nodejs binding for bincraft",
+  "main": "lib/index.js",
+  "author": "ioo0s <ios@startcross.cn>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StarCrossPortal/bincraft.git"
+  },
+  "bugs": {
+    "url": "https://github.com/StarCrossPortal/bincraft/issues"
+  },
+  "files": [
+    "native/index.node",
+    "lib"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "neon-cli": "^0.8.0",
+    "node-pre-gyp": "^0.17.0",
+    "node-pre-gyp-github": "^1.4.3"
+  },
+  "scripts": {
+    "build": "neon build",
+    "build-release": "neon build --release",
+    "install": "node-pre-gyp install --fallback-to-build=false || neon build",
+    "package": "node-pre-gyp package",
+    "test": "npm run build && npm run spec",
+    "upload-binary": "npm run build-release && node-pre-gyp package && node-pre-gyp-github publish",
+    "version": "npm run build-release"
+  },
+  "binary": {
+    "module_name": "index",
+    "host": "https://github.com/StarCrossPortal/bincraft/releases/download/",
+    "remote_path": "{version}",
+    "package_name": "bincraft-{node_abi}-{platform}-{arch}.tar.gz",
+    "module_path": "./native",
+    "pkg_path": "."
+  }
+}

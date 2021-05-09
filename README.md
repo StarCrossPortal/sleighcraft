@@ -105,6 +105,18 @@ $ maturin build
 $ pip3 install bincraft-0.1.0-cp39-cp39-Arch.whl
 ```
 
+#### Nodejs
+
+```bash
+# quick install it with npm 
+$ npm i bincraft
+
+# or manual, to do this, you need to have rust compiler installed, nodejs and neon
+# better with rustup.
+$ npm install -g neon-cli
+$ neon build
+```
+
 ### How to Use
 
 One could refer to doc.rs to see how Rust binding can be used.
@@ -136,6 +148,38 @@ for asm in sleigh.disasm(0):
         vars = pcode.vars()
         print(f'opcode: {opcode}\t vars: {vars}\t')
     print()
+```
+
+Nodejs binding:
+
+```js
+const Sleigh = require('bincraft');
+//or const Sleigh = require('.');
+
+// init the sleigh engine Sleigh(arch, code) like python
+const sleigh = new Sleigh("x86",[0x90,90]);
+
+// disasm(start_addr) 
+// - start: Default is 0
+const asms = sleigh.disasm();
+
+asms.forEach(asm => {
+    let addr = asm.addr();
+    let mnemonic = asm.mnemonic();
+    let body = asm.body();
+    // dump instruction
+    console.log(`addr: ${addr}\t mnemonic: ${mnemonic}\t body: ${body}`);
+    
+    // And we have IR！
+    let pcodes = asm.pcodes();
+    pcodes.forEach(pcode => {
+        opcode = pcode.opcode();
+        vars = pcode.vars();
+        
+        console.log(`opcode: ${opcode}\t vars: ${vars}`);
+    });
+});
+
 ```
 
 Rust (kinda low level):

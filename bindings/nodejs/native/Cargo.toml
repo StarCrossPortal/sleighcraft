@@ -1,0 +1,19 @@
+[package]
+name = "bincraft-js"
+version = "0.1.0"
+authors = ["ios <ios@starcross.cn>"]
+license = "Apache-2.0"
+build = "build.rs"
+edition = "2018"
+exclude = ["artifacts.json", "bincraft"]
+
+[lib]
+name = "bincraft"
+crate-type = ["cdylib"]
+
+[build-dependencies]
+neon-build = "0.8.0"
+
+[dependencies]
+neon = "0.8.0"
+sleighcraft = { path = "../../../sleighcraft" }
