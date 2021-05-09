@@ -2,9 +2,8 @@ name: publish-npm
 
 on:
   push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+    tags:
+      - 'v*'
 
 env:
   CARGO_TERM_COLOR: always
