@@ -1,0 +1,4 @@
+[submodule "ghidra"]
+	path = ghidra
+	url = https://github.com/StarCrossPortal/ghidra
+	branch = bincraft_ghidra

@@ -2,27 +2,39 @@
 ![logo](./logo.jpeg)
 # BinCraft - Binary Analysis Craft
 
-BinCraft is a future binary analysis toolkit.
+BinCraft is the future binary analysis tool based on Ghidra, or a Ghidra release version.
 
 Features:
 
-- Layered Architecture: composed by multiple libraries that can be used seperatedly.
-- Written in Rust: high performance, safe interface, no VM.
-- Python API: easy scripting. In the future, C API will also be provided, allows to bind to more programming languages.
-- Extensible: with [sleigh DSL](https://ghidra.re/courses/languages/html/sleigh.html), new architecture is easy to add.
-- (Currently In Development) **SQL based binary analysis**
+- Modernized UI (Dark Theme)
+- More aggressive bug fixes and features
+- Out of the box Ghidra, useful extensions included
+- Useful tools based on Ghidra
+- Ghidra original power included
 
-BinCraft is seperated into multiple parts, while currently only the first one, `sleighcraft` is working.
+NOTE: Current under active development.
 
-NOTE:
+## Why?
 
-this project is still in early stage.
-Large scale API modifications, bugs are expected.
-Documentations are yet to be complete.
-Star us, we will try our best to make it complete and better. 🥺 Please, do it.
+[Ghidra](https://github.com/NationalSecurityAgency/ghidra) is a nice project.
+But it is huge already.
+The maintainance is hard and although they are trying their best to advance it, the procedure is still quite slow.
+Many PRs are given in early 2019 but remains no reply, and they might be useful to people.
 
+Thus, we decide to maintain a faster Ghidra.
+Our thought is to maintain a Ghidra release, which will still trace upstream ghidra fixes but modify the code in our way to modernize some of the parts.
 
-## SleighCraft
+For quite a long time, we will not maintain a "forked" Ghidra (means that we will still track upstream fixes and do not tend to modify the code structure).
+Unless, the value of it is proved.
+
+## Organize
+
+Each functionality is called a "craft", currently we are planning crafts like:
+
+- SleighCraft: A Rust crate with Python/NodeJs (and maybe more!) bindings that export Ghidra Sleigh Engine to disassemble binary and lift them to Pcode IR
+- GhidraCraft: A collection of bincraft-maintained Ghidra extensions that may make your life easier when using Ghidra
+
+### SleighCraft
 
 `SleighCraft` is a decoder (or, linear disassembler) based on ghidra's decompiler implementation. Sleighcraft can be used in Rust or Python, with both high-level and low-level API.
 
@@ -77,19 +89,19 @@ Architectures comparision with capstone (according to [capstone arch list](https
 |System Z|❌|✔️|
 |xCore|❌|✔️|
 
-### How to install
+#### How to install
 
-#### Rust
+Rust
 
 Use cargo:
 
 ```toml
-sleighcraft = { git = "https://github.com/ret2lab/bincraft" }
+sleighcraft = { git = "https://github.com/StarCrossPortal/bincraft" }
 ```
 
 The repo is a bit large to submit on crates-io (because of predefined sla files), but save you the complex of compiling sleigh files yourself.
 
-#### Python
+Python:
 
 ```bash
 # quick install it with pip
@@ -105,7 +117,7 @@ $ maturin build
 $ pip3 install bincraft-0.1.0-cp39-cp39-Arch.whl
 ```
 
-#### Nodejs
+NodeJs:
 
 ```bash
 # quick install it with npm 
@@ -213,54 +225,6 @@ println!("{:?}", pcode_emit.pcode_asms);
 ```
 
 A more detailed documentation of Rust API is still under development.
-
-## QueryCraft (In-Development)
-
-QueryCraft is a SQL based binary analysis, its goal is to allow analyzer write SQL to fetch information (both raw and analyzed) from binary.
-
-This is a currently in development future.
-
-Demo only support for disassembly bytes into table is available. One can do this using the demo:
-
-```sqlite
-sqlite> .load ./libquerycraft.so
-sqlite> select qc_disasm("bytes", X'319090', "x86", "qc_out_asm", "qc_out_pcode");
-1
-sqlite> select * from qc_out_asm;
-ram|0|XOR|word ptr [BX + SI + 0x90],DX
-sqlite> select * from qc_out_pcode;
-ram|0|INT_ADD|register|12|2|register|24|2||||unique|4736|2|
-ram|0|INT_ADD|unique|4736|2|const|144|2||||unique|4992|2|
-ram|0|CALLOTHER|const|0|4|register|262|2|unique|4992|2|unique|14336|4|
-ram|0|COPY|const|0|1|||||||register|512|1|
-ram|0|COPY|const|0|1|||||||register|523|1|
-ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
-ram|0|INT_XOR|unique|30848|2|register|8|2||||unique|30848|2|
-ram|0|STORE|const|94230195853072|8|unique|14336|4|unique|30848|2||||
-ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
-ram|0|INT_SLESS|unique|30848|2|const|0|2||||register|519|1|
-ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
-ram|0|INT_EQUAL|unique|30848|2|const|0|2||||register|518|1|
-ram|0|LOAD|const|94230195853072|8|unique|14336|4||||unique|30848|2|
-ram|0|INT_AND|unique|30848|2|const|255|2||||unique|55552|2|
-ram|0|POPCOUNT|unique|55552|2|||||||unique|55680|1|
-ram|0|INT_AND|unique|55680|1|const|1|1||||unique|55808|1|
-ram|0|INT_EQUAL|unique|55808|1|const|0|1||||register|514|1|
-```
-
-## In the Future
-
-Currently we are in the early stage of the project.
-But we have already planned several goals in the future:
-
-- [x] decoder (linear disassembler) with IR (based on ghidra)
-- [ ] encoder (single instruction assemble) (based on ghidra)
-- [ ] universal binary analysis algorithms (CFG generation, data flow information)
-- [ ] C API/More language bindings
-- [ ] PCode emulator
-- [ ] Analysis Framework
-- [ ] symbolic execution
-- [ ] customizable (with DSL, like sleigh to decoder) loader
 
 ## About Us
 

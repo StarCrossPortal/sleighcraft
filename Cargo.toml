@@ -2,7 +2,6 @@
 
 members = [
     "sleighcraft",
-    "querycraft",
     "bindings/python",
     "bindings/nodejs/native"
 ]
