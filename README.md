@@ -1,5 +1,6 @@
 
-![logo](./logo.jpeg)
+![logo](./images/logo.jpeg)
+
 # BinCraft - Binary Analysis Craft
 
 BinCraft is the future binary analysis tool based on Ghidra, or a Ghidra release version.
@@ -13,6 +14,10 @@ Features:
 - Ghidra original power included
 
 NOTE: Current under active development.
+
+UI preview:
+
+![preview](./images/dark_theme_preview.png)
 
 ## Why?
 
