@@ -18,7 +18,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const DECOMPILER_SOURCE_BASE_CXX: &[&'static str] = &[
+const DECOMPILER_SOURCE_BASE_CXX: &[&str] = &[
     "space.cc",
     "float.cc",
     "address.cc",
@@ -114,9 +114,9 @@ const SLEIGH_COMPILER_SOURCE_FLEX: [&'static str; 1] = [
 ];
 */
 
-const DECOMPILER_SOURCE_SLEIGH_YACC: &[&'static str] = &["pcodeparse.y", "grammar.y", "xml.y"];
+const DECOMPILER_SOURCE_SLEIGH_YACC: &[&str] = &["pcodeparse.y", "grammar.y", "xml.y"];
 
-const PROXIES: &[&'static str] = &[
+const PROXIES: &[&str] = &[
     "address_proxy.cc",
     "addrspace_proxy.cc",
     "cover_proxy.cc",
@@ -141,7 +141,7 @@ fn need_recompile(source: &Path) -> bool {
     let outdir = env::var("OUT_DIR").unwrap();
 
     let path = Path::new(&outdir).join(source);
-    let mut path = PathBuf::from(path);
+    let mut path = path;
     path.set_extension("o");
     let metadata = match fs::metadata(path) {
         Ok(m) => m,
@@ -149,19 +149,15 @@ fn need_recompile(source: &Path) -> bool {
     };
     let object_mtime = FileTime::from_last_modification_time(&metadata);
 
-    let metadata = fs::metadata(source).expect(&format!("source code {:?} not found", source));
+    let metadata = fs::metadata(source).unwrap_or_else(|_| panic!("source code {:?} not found", source));
     let source_mtime = FileTime::from_last_modification_time(&metadata);
 
-    if source_mtime > object_mtime {
-        true
-    } else {
-        false
-    }
+    source_mtime > object_mtime
 }
 
 fn obj_path_from_src_path(src_path: &Path) -> PathBuf {
     let outdir = env::var("OUT_DIR").unwrap();
-    let mut path = PathBuf::from(Path::new(&outdir).join(src_path));
+    let mut path = Path::new(&outdir).join(src_path);
     path.set_extension("o");
     path
 }
@@ -180,7 +176,7 @@ fn prepare() -> CompileOptions {
     }
 
     for src in DECOMPILER_SOURCE_SLEIGH_YACC.iter() {
-        let name = src.split(".").next().unwrap();
+        let name = src.split('.').next().unwrap();
         let path = Path::new("src")
             .join("cpp")
             .join("gen")
@@ -207,7 +203,7 @@ fn prepare() -> CompileOptions {
         }
     }
 
-    CompileOptions { objects, sources }
+    CompileOptions { sources, objects }
 }
 
 fn main() {
@@ -216,7 +212,7 @@ fn main() {
 
     let mut target = cxx_build::bridge(sleigh_src_file);
 
-    for obj in compile_opts.objects.iter() {
+    for obj in &compile_opts.objects {
         target.object(obj);
     }
     let disasm_src_path= Path::new("src").join("cpp").join("bridge").join("disasm.cpp");
