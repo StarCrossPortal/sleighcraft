@@ -18,6 +18,3 @@ __pycache__/
 
 # so should never be uploaded
 *.so
-
-# submodule
-sleighcraft/src/ghidra

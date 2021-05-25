@@ -1,45 +1,6 @@
+# SleighCraft
 
-![logo](./images/logo.jpeg)
-
-# BinCraft - Binary Analysis Craft
-
-BinCraft is the future binary analysis tool based on Ghidra, or a Ghidra release version.
-
-Features:
-
-- Modernized UI (Dark Theme)
-- More aggressive bug fixes and features
-- Out of the box Ghidra, useful extensions included
-- Useful tools based on Ghidra
-- Ghidra original power included
-
-NOTE: Current under active development.
-
-UI preview:
-
-![preview](./images/dark_theme_preview.png)
-
-## Why?
-
-[Ghidra](https://github.com/NationalSecurityAgency/ghidra) is a nice project.
-But it is huge already.
-The maintainance is hard and although they are trying their best to advance it, the procedure is still quite slow.
-Many PRs are given in early 2019 but remains no reply, and they might be useful to people.
-
-Thus, we decide to maintain a faster Ghidra.
-Our thought is to maintain a Ghidra release, which will still trace upstream ghidra fixes but modify the code in our way to modernize some of the parts.
-
-For quite a long time, we will not maintain a "forked" Ghidra (means that we will still track upstream fixes and do not tend to modify the code structure).
-Unless, the value of it is proved.
-
-## Organize
-
-Each functionality is called a "craft", currently we are planning crafts like:
-
-- SleighCraft: A Rust crate with Python/NodeJs (and maybe more!) bindings that export Ghidra Sleigh Engine to disassemble binary and lift them to Pcode IR
-- GhidraCraft: A collection of bincraft-maintained Ghidra extensions that may make your life easier when using Ghidra
-
-### SleighCraft
+SleighCraft is one of the [BinCraft](https://github.com/StarCrossPortal/bincraft) project.
 
 `SleighCraft` is a decoder (or, linear disassembler) based on ghidra's decompiler implementation. Sleighcraft can be used in Rust or Python, with both high-level and low-level API.
 
@@ -94,14 +55,14 @@ Architectures comparision with capstone (according to [capstone arch list](https
 |System Z|❌|✔️|
 |xCore|❌|✔️|
 
-#### How to install
+## How to install
 
 Rust
 
 Use cargo:
 
 ```toml
-sleighcraft = { git = "https://github.com/StarCrossPortal/bincraft" }
+sleighcraft = { git = "https://github.com/StarCrossPortal/sleighcraft" }
 ```
 
 The repo is a bit large to submit on crates-io (because of predefined sla files), but save you the complex of compiling sleigh files yourself.
@@ -134,7 +95,7 @@ $ npm install -g neon-cli
 $ neon build
 ```
 
-### How to Use
+## How to Use
 
 One could refer to doc.rs to see how Rust binding can be used.
 
