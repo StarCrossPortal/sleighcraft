@@ -1,12 +1,12 @@
 //
 //  Copyright 2021 StarCrossTech
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,10 +17,9 @@ use pyo3::class::basic::PyObjectProtocol;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyLong, PyUnicode};
 use sleighcraft::error::Error;
-use sleighcraft::{
-    arch, CollectingAssemblyEmit, CollectingPcodeEmit, PlainLoadImage, SleighBuilder,
-};
+use sleighcraft::{arch, CollectingAssemblyEmit, CollectingPcodeEmit, PlainLoadImage, SleighBuilder, Mode};
 use sleighcraft::{Address, Instruction, PcodeInstruction, PcodeVarnodeData};
+use std::convert::TryFrom;
 
 #[pyclass]
 #[derive(Clone, PartialEq, Eq)]
@@ -263,18 +262,24 @@ impl PyInstruction {
 pub struct Sleigh {
     spec: Option<String>,
     code: Option<Vec<u8>>,
+    mode: Option<Mode>
 }
 
 #[pymethods]
 impl Sleigh {
     #[new]
-    pub fn new(spec: &PyUnicode, code: &PyList) -> Self {
+    #[args(mode = "0")]
+    pub fn new(spec: &PyUnicode, code: &PyList, mode: i32) -> Self {
         let sp: &str = spec.extract().unwrap();
         let spec = arch(sp);
         let codes: Vec<u8> = code.extract().unwrap();
         let spec = Option::from(spec.unwrap().to_string());
+        let mode = {
+            let mode =Mode::try_from(mode);
+            mode.ok()
+        };
         let code = Option::from(codes);
-        Sleigh { spec, code }
+        Sleigh { spec, code, mode}
     }
 
     #[text_signature = "($self, start, cnt)"]
@@ -285,6 +290,7 @@ impl Sleigh {
         let mut loader = PlainLoadImage::from_buf(self.code.as_ref().unwrap().as_ref(), start);
         sleigh_builder.loader(&mut loader);
         sleigh_builder.spec(self.spec.as_ref().unwrap().as_str());
+        sleigh_builder.mode(self.mode.unwrap());
 
         let mut asm_emit = CollectingAssemblyEmit::default();
         let mut pcode_emit = CollectingPcodeEmit::default();

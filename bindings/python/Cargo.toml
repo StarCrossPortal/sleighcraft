@@ -13,6 +13,7 @@ classifier = [
 
 [dependencies]
 sleighcraft = { path = "../../sleighcraft" }
+num_enum = "0.5.1"
 
 [dependencies.pyo3]
 version = "0.13.2"

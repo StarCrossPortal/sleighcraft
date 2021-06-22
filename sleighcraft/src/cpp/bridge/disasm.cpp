@@ -18,7 +18,7 @@
 #include <iostream>
 #include "proxies/address_proxy.hh"
 
-void SleighProxy::set_spec(const rust::Str spec_content) {
+void SleighProxy::set_spec(const rust::Str spec_content, int mode) {
     stringstream ss;
     ss << spec_content;
 
@@ -26,14 +26,20 @@ void SleighProxy::set_spec(const rust::Str spec_content) {
     storage.registerTag(root);
 
     translator.initialize(storage);
+
+    this->ctx.setVariableDefault("addrsize",mode);
+    this->ctx.setVariableDefault("opsize",mode);
 }
 
-void SleighProxy::setSpecFromPath(const rust::Str path) {
+void SleighProxy::setSpecFromPath(const rust::Str path,int mode) {
     string cxxpath = string(path);
     Element *root = storage.openDocument(cxxpath)->getRoot();
     storage.registerTag(root);
 
     translator.initialize(storage);
+
+    this->ctx.setVariableDefault("addrsize",mode); // Address size is 32-bit
+    this->ctx.setVariableDefault("opsize",mode); // Operand size is 32-bit
 }
 
 unique_ptr<SleighProxy> new_sleigh_proxy(RustLoadImage &ld) {
