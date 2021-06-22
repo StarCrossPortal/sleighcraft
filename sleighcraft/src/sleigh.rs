@@ -1,12 +1,12 @@
 //
 //  Copyright 2021 StarCrossTech
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -388,7 +388,7 @@ pub mod ffi {
         // fn get_body(self: &InstructionProxy) -> &CxxString;
 
         type SleighProxy;
-        fn set_spec(self: Pin<&mut SleighProxy>, spec_content: &str);
+        fn set_spec(self: Pin<&mut SleighProxy>, spec_content: &str, mode: i32);
         fn new_sleigh_proxy(ld: &mut RustLoadImage) -> UniquePtr<SleighProxy>;
         fn decode_with(
             self: Pin<&mut SleighProxy>,
@@ -399,9 +399,11 @@ pub mod ffi {
     }
 }
 
+use crate::Mode::Mode16;
 use ffi::*;
 use std::borrow::BorrowMut;
 use std::pin::Pin;
+use num_enum::TryFromPrimitive;
 
 impl ToString for PcodeOpCode {
     fn to_string(&self) -> String {
@@ -481,6 +483,17 @@ impl ToString for PcodeOpCode {
             _ => unreachable!(),
         }
     }
+}
+
+#[derive(TryFromPrimitive,Copy, Clone)]
+#[repr(i32)]
+pub enum Mode {
+    // Default Address size is 16-bit
+    Mode16 = 0,
+    // Address size is 32-bit
+    Mode32 = 1,
+    // Address size is 32-bit
+    Mode64 = 2,
 }
 
 pub trait AssemblyEmit {
@@ -672,7 +685,6 @@ impl LoadImage for PlainLoadImage {
         let start_off = addr.get_offset() as u64;
         let size = ptr.len();
         let max = self.start + (self.buf.len() as u64 - 1);
-
 
         for i in 0..size {
             let cur_off = start_off + i as u64;
@@ -876,6 +888,7 @@ pub struct SleighBuilder<'a> {
     pcode_emit: Option<RustPcodeEmit<'a>>,
     load_image: Option<RustLoadImage<'a>>,
     spec: Option<String>,
+    mode: Option<Mode>,
 }
 impl<'a> SleighBuilder<'a> {
     // TODO: add from_arch(arch_name: &str) -> Self helper function.
@@ -890,6 +903,11 @@ impl<'a> SleighBuilder<'a> {
         self
     }
 
+    pub fn mode(&mut self, mode: Mode) -> &mut Self {
+        self.mode = Some(mode);
+        self
+    }
+
     pub fn spec(&mut self, spec: &str) -> &mut Self {
         // self.load_image = unsafe{Some(Box::from_raw(loader))};
         self.spec = Some(spec.to_string());
@@ -901,7 +919,7 @@ impl<'a> SleighBuilder<'a> {
         self
     }
 
-    pub fn try_build(self) -> Result<Sleigh<'a>> {
+    pub fn try_build(mut self) -> Result<Sleigh<'a>> {
         let load_image = self
             .load_image
             .ok_or(Error::MissingArg("load_image".to_string()))?;
@@ -909,7 +927,14 @@ impl<'a> SleighBuilder<'a> {
         let mut sleigh_proxy = new_sleigh_proxy(&mut load_image);
 
         let spec = self.spec.ok_or(Error::MissingArg("spec".to_string()))?;
-        sleigh_proxy.as_mut().unwrap().set_spec(spec.as_str());
+        if self.mode.is_none() {
+            // Set default address and Operand size
+            self.mode = Some(Mode16);
+        };
+        sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .set_spec(spec.as_str(), self.mode.unwrap() as i32);
 
         let asm_emit = self
             .asm_emit
