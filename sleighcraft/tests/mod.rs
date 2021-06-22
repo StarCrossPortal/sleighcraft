@@ -1,5 +1,5 @@
 use sleighcraft::prelude::*;
-use sleighcraft::Mode::{Mode32, Mode64};
+use sleighcraft::Mode::{MODE32, MODE64};
 
 // #[test]
 // fn test_custom_spec() {
@@ -58,7 +58,7 @@ fn test_x86_32_bit() {
     let mut loader = PlainLoadImage::from_buf(&buf, 0);
     sleigh_builder.loader(&mut loader);
     sleigh_builder.spec(spec);
-    sleigh_builder.mode(Mode32);
+    sleigh_builder.mode(MODE32);
     let mut asm_emit = CollectingAssemblyEmit::default();
     let mut pcode_emit = CollectingPcodeEmit::default();
     sleigh_builder.asm_emit(&mut asm_emit);
@@ -79,7 +79,7 @@ fn test_x86_64_bit() {
     let mut loader = PlainLoadImage::from_buf(&buf, 0);
     sleigh_builder.loader(&mut loader);
     sleigh_builder.spec(spec);
-    sleigh_builder.mode(Mode64);
+    sleigh_builder.mode(MODE64);
     let mut asm_emit = CollectingAssemblyEmit::default();
     let mut pcode_emit = CollectingPcodeEmit::default();
     sleigh_builder.asm_emit(&mut asm_emit);

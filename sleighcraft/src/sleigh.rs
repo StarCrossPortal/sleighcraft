@@ -399,11 +399,11 @@ pub mod ffi {
     }
 }
 
-use crate::Mode::Mode16;
 use ffi::*;
 use std::borrow::BorrowMut;
 use std::pin::Pin;
 use num_enum::TryFromPrimitive;
+use crate::Mode::MODE16;
 
 impl ToString for PcodeOpCode {
     fn to_string(&self) -> String {
@@ -489,11 +489,11 @@ impl ToString for PcodeOpCode {
 #[repr(i32)]
 pub enum Mode {
     // Default Address size is 16-bit
-    Mode16 = 0,
+    MODE16 = 0,
     // Address size is 32-bit
-    Mode32 = 1,
+    MODE32 = 1,
     // Address size is 32-bit
-    Mode64 = 2,
+    MODE64 = 2,
 }
 
 pub trait AssemblyEmit {
@@ -929,7 +929,7 @@ impl<'a> SleighBuilder<'a> {
         let spec = self.spec.ok_or(Error::MissingArg("spec".to_string()))?;
         if self.mode.is_none() {
             // Set default address and Operand size
-            self.mode = Some(Mode16);
+            self.mode = Some(MODE16);
         };
         sleigh_proxy
             .as_mut()
