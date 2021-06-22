@@ -1,4 +1,5 @@
 use sleighcraft::prelude::*;
+use sleighcraft::Mode::{Mode32, Mode64};
 
 // #[test]
 // fn test_custom_spec() {
@@ -37,6 +38,48 @@ fn test_x86_case_ignoring() {
     let mut loader = PlainLoadImage::from_buf(&buf, 0);
     sleigh_builder.loader(&mut loader);
     sleigh_builder.spec(spec);
+    let mut asm_emit = CollectingAssemblyEmit::default();
+    let mut pcode_emit = CollectingPcodeEmit::default();
+    sleigh_builder.asm_emit(&mut asm_emit);
+    sleigh_builder.pcode_emit(&mut pcode_emit);
+    let mut sleigh = sleigh_builder.try_build().unwrap();
+
+    sleigh.decode(0).unwrap();
+
+    println!("{:?}", asm_emit.asms);
+    println!("{:?}", pcode_emit.pcode_asms);
+}
+
+#[test]
+fn test_x86_32_bit() {
+    let mut sleigh_builder = SleighBuilder::default();
+    let spec = arch("x86").unwrap();
+    let buf = [0x90, 0x32, 0x31];
+    let mut loader = PlainLoadImage::from_buf(&buf, 0);
+    sleigh_builder.loader(&mut loader);
+    sleigh_builder.spec(spec);
+    sleigh_builder.mode(Mode32);
+    let mut asm_emit = CollectingAssemblyEmit::default();
+    let mut pcode_emit = CollectingPcodeEmit::default();
+    sleigh_builder.asm_emit(&mut asm_emit);
+    sleigh_builder.pcode_emit(&mut pcode_emit);
+    let mut sleigh = sleigh_builder.try_build().unwrap();
+
+    sleigh.decode(0).unwrap();
+
+    println!("{:?}", asm_emit.asms);
+    println!("{:?}", pcode_emit.pcode_asms);
+}
+
+#[test]
+fn test_x86_64_bit() {
+    let mut sleigh_builder = SleighBuilder::default();
+    let spec = arch("x86-64").unwrap();
+    let buf = [72, 49, 192];
+    let mut loader = PlainLoadImage::from_buf(&buf, 0);
+    sleigh_builder.loader(&mut loader);
+    sleigh_builder.spec(spec);
+    sleigh_builder.mode(Mode64);
     let mut asm_emit = CollectingAssemblyEmit::default();
     let mut pcode_emit = CollectingPcodeEmit::default();
     sleigh_builder.asm_emit(&mut asm_emit);
