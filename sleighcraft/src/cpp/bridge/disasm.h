@@ -96,8 +96,8 @@ class SleighProxy {
 public:
     SleighProxy(RustLoadImage &ld): loader(ld), translator(&loader, &this->ctx) {}
 
-    void setSpecFromPath(const rust::Str path);
-    void set_spec(const rust::Str spec_content);
+    void setSpecFromPath(const rust::Str path, int mode);
+    void set_spec(const rust::Str spec_content, int mode);
     void decode_with(RustAssemblyEmit& asm_emit, RustPcodeEmit& pcode_emit, uint64_t start);
 
 private:
