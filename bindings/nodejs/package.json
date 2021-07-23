@@ -1,6 +1,6 @@
 {
   "name": "bincraft",
-  "version": "0.1.1-dev2",
+  "version": "0.1.1-dev3",
   "description": "nodejs binding for bincraft",
   "main": "lib/index.js",
   "author": "ioo0s <ios@startcross.cn>",
