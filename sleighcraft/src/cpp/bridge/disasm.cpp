@@ -27,8 +27,11 @@ void SleighProxy::set_spec(const rust::Str spec_content, int mode) {
 
     translator.initialize(storage);
 
-    this->ctx.setVariableDefault("addrsize",mode);
-    this->ctx.setVariableDefault("opsize",mode);
+    if (mode != 0) {
+        this->ctx.setVariableDefault("addrsize",mode);
+        this->ctx.setVariableDefault("opsize",mode);
+    }
+
 }
 
 void SleighProxy::setSpecFromPath(const rust::Str path,int mode) {
