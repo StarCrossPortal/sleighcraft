@@ -91,3 +91,39 @@ fn test_x86_64_bit() {
     println!("{:?}", asm_emit.asms);
     println!("{:?}", pcode_emit.pcode_asms);
 }
+
+#[test]
+fn test_mips32le_bit() {
+    let mut sleigh_builder = SleighBuilder::default();
+    let spec = arch("mips32le").unwrap();
+    /*
+    0x0 j 8
+    0x4 add $1, $2, $3
+    0x8 ori $1, $2, 0x64
+    */
+    let buf = [2, 0, 0, 8, 32, 8, 67, 0, 100, 0, 65, 52];
+    let mut loader = PlainLoadImage::from_buf(&buf, 0);
+    sleigh_builder.loader(&mut loader);
+    sleigh_builder.spec(spec);
+    let mut asm_emit = CollectingAssemblyEmit::default();
+    let mut pcode_emit = CollectingPcodeEmit::default();
+    sleigh_builder.asm_emit(&mut asm_emit);
+    sleigh_builder.pcode_emit(&mut pcode_emit);
+    let mut sleigh = sleigh_builder.try_build().unwrap();
+
+    sleigh.decode(0).unwrap();
+
+    for asm in asm_emit.asms.iter() {
+        println!("{}:\t{}\t{}", asm.addr.offset, asm.mnemonic, asm.body);
+    }
+
+    println!();
+
+    for pcode in pcode_emit.pcode_asms.iter() {
+        println!("address: {:?}", pcode.addr);
+        println!("opcode: {:?}", pcode.opcode);
+        println!("vars: {:?}", pcode.vars);
+        println!("out_var: {:?}", pcode.out_var);
+        println!();
+    }
+}
