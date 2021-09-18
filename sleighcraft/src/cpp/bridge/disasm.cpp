@@ -63,8 +63,8 @@ void SleighProxy::decode_with(RustAssemblyEmit& asm_emit, RustPcodeEmit& pcode_e
 
     while (buf_used < buf_size) {
         try {
-            translator.printAssembly(assemblyEmit, address);
-            length = translator.oneInstruction(pcodeEmit, address);
+            length = translator.printAssembly(assemblyEmit, address);
+            translator.oneInstruction(pcodeEmit, address);
             address = address + length;
             buf_used = buf_used + length;
 
