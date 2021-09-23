@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "sleighcraft_util_macro",
     "sleighcraft",
     "bindings/python",
     "bindings/nodejs/native"

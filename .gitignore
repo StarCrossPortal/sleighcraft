@@ -18,3 +18,7 @@ __pycache__/
 
 # so should never be uploaded
 *.so
+
+# sla files should be ignored and not uploaded to github
+sla/
+*.sla

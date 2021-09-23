@@ -16,6 +16,7 @@
 use crate::error::{Error, Result};
 use cxx::{CxxString, UniquePtr};
 use once_cell::sync::Lazy;
+use sleighcraft_util_macro::def_sla_load_preset;
 use std::collections::HashMap;
 
 #[cxx::bridge]
@@ -399,11 +400,11 @@ pub mod ffi {
     }
 }
 
+use crate::Mode::MODE16;
 use ffi::*;
+use num_enum::TryFromPrimitive;
 use std::borrow::BorrowMut;
 use std::pin::Pin;
-use num_enum::TryFromPrimitive;
-use crate::Mode::MODE16;
 
 impl ToString for PcodeOpCode {
     fn to_string(&self) -> String {
@@ -485,7 +486,7 @@ impl ToString for PcodeOpCode {
     }
 }
 
-#[derive(TryFromPrimitive,Copy, Clone)]
+#[derive(TryFromPrimitive, Copy, Clone)]
 #[repr(i32)]
 pub enum Mode {
     // Default Address size is 16-bit
@@ -737,6 +738,10 @@ impl Instruction {
     }
 }
 
+// relative to root?
+def_sla_load_preset!("sleighcraft/sla/", fn load_preset() -> HashMap<&'static str, &'static str>);
+
+/*
 fn load_preset() -> HashMap<&'static str, &'static str> {
     let mut map = HashMap::new();
     macro_rules! def_arch {
@@ -859,6 +864,7 @@ fn load_preset() -> HashMap<&'static str, &'static str> {
 
     map
 }
+*/
 
 const PRESET: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| load_preset());
 

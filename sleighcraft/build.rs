@@ -1,12 +1,12 @@
 //
 //  Copyright 2021 StarCrossTech
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,8 @@ use filetime::FileTime;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use walkdir::WalkDir;    
 
 const DECOMPILER_SOURCE_BASE_CXX: &[&str] = &[
     "space.cc",
@@ -132,6 +134,9 @@ const PROXIES: &[&str] = &[
     "variable_proxy.cc",
 ];
 
+const SLEIGH_COMPILER_SOURCE: &[&str] = &["slgh_compile.cc", "slghscan.cc", "slghparse.cc"];
+
+#[derive(Debug)]
 struct CompileOptions {
     sources: Vec<PathBuf>,
     objects: Vec<PathBuf>,
@@ -149,7 +154,8 @@ fn need_recompile(source: &Path) -> bool {
     };
     let object_mtime = FileTime::from_last_modification_time(&metadata);
 
-    let metadata = fs::metadata(source).unwrap_or_else(|_| panic!("source code {:?} not found", source));
+    let metadata =
+        fs::metadata(source).unwrap_or_else(|_| panic!("source code {:?} not found", source));
     let source_mtime = FileTime::from_last_modification_time(&metadata);
 
     source_mtime > object_mtime
@@ -162,7 +168,23 @@ fn obj_path_from_src_path(src_path: &Path) -> PathBuf {
     path
 }
 
-fn prepare() -> CompileOptions {
+fn prepare_sleighc() -> CompileOptions {
+    let mut objects = vec![];
+    let mut sources = vec![];
+
+    for src in SLEIGH_COMPILER_SOURCE.iter() {
+        let path = PathBuf::from("src/cpp").join(src);
+        if need_recompile(&path) {
+            sources.push(path);
+        } else {
+            objects.push(obj_path_from_src_path(&path));
+        }
+    }
+
+    CompileOptions { sources, objects }
+}
+
+fn prepare_lib() -> CompileOptions {
     let mut objects = vec![];
     let mut sources = vec![];
 
@@ -190,6 +212,15 @@ fn prepare() -> CompileOptions {
         }
     }
 
+    CompileOptions { sources, objects }
+}
+
+fn prepare() -> CompileOptions {
+    let CompileOptions {
+        mut sources,
+        mut objects,
+    } = prepare_lib();
+
     for src in PROXIES.iter() {
         let path = Path::new("src")
             .join("cpp")
@@ -206,7 +237,48 @@ fn prepare() -> CompileOptions {
     CompileOptions { sources, objects }
 }
 
-fn main() {
+fn compile_compiler() {
+    // sleigh needs the sleigh library...
+    // so we need to build that first.. sad
+
+    let lib_opt = prepare_lib();
+
+    let mut compile_opts = prepare_sleighc();
+    compile_opts.sources.extend(lib_opt.sources);
+    compile_opts.objects.extend(lib_opt.objects);
+    println!("{:?}", compile_opts);
+    let mut build = cc::Build::new();
+    build
+        .cpp(true)
+        .flag_if_supported("-std=c++14")
+        .include(PathBuf::from("src/cpp"));
+
+    // unfortunately, object or files will not work in this
+    // situation, we have to deal with it our own.
+    //
+    // TODO: make sure this works under windows
+
+    let mut cmd = build.get_compiler().to_command();
+    cmd.args(&[
+        "-o",
+        Path::new(&std::env::var("OUT_DIR").unwrap())
+            .join("sleighc")
+            .to_str()
+            .unwrap(),
+    ]);
+
+    for object in compile_opts.objects {
+        cmd.arg(object);
+    }
+
+    for source in compile_opts.sources {
+        cmd.arg(source);
+    }
+
+    cmd.spawn().unwrap().wait().unwrap();
+}
+
+fn compile_lib() {
     let compile_opts = prepare();
     let sleigh_src_file = Path::new("src").join("sleigh.rs");
 
@@ -215,14 +287,17 @@ fn main() {
     for obj in &compile_opts.objects {
         target.object(obj);
     }
-    let disasm_src_path= Path::new("src").join("cpp").join("bridge").join("disasm.cpp");
+    let disasm_src_path = Path::new("src")
+        .join("cpp")
+        .join("bridge")
+        .join("disasm.cpp");
     let src_cpp = Path::new("src").join("cpp");
     let src_cpp_gen_bison = Path::new("src").join("cpp").join("gen").join("bison");
     let src_cpp_gen_flex = Path::new("src").join("cpp").join("gen").join("flex");
     #[cfg(target_os = "windows")]
     {
         target.define("_WINDOWS", "1"); // This is assumed by ghidra, but not defined by msvc, strange.
-        //target.target("x86_64-pc-windows-gnu");
+                                        //target.target("x86_64-pc-windows-gnu");
     }
     target
         .cpp(true)
@@ -234,4 +309,49 @@ fn main() {
         .include(src_cpp_gen_bison)
         .include(src_cpp_gen_flex)
         .compile("sleigh");
+}
+
+/// This will generate ".sla" file in the directory of its sleigh counterpart.
+fn sleighc_compile_sla(sleigh_dir: &PathBuf) {
+    let sleighc = Path::new(&std::env::var("OUT_DIR").unwrap()).join("sleighc");
+
+    Command::new(sleighc)
+        .arg("-a")
+        .arg(sleigh_dir)
+        .spawn()
+        .unwrap()
+        .wait()
+        .unwrap();
+}
+
+fn move_sla_files(sleigh_dir: &PathBuf) {
+
+    let _ = std::fs::create_dir("sla");
+
+    for entry in WalkDir::new(sleigh_dir).contents_first(true).into_iter() {
+        let name = entry.as_ref().unwrap().file_name();
+        let from_path = entry.as_ref().unwrap().path();
+        if from_path.extension().map(|e| e == "sla").unwrap_or(false) {
+            let to_path = Path::new("sla").join(name);
+            std::fs::rename(from_path, to_path).unwrap();
+        }
+    }
+}
+
+/// As for now, the sleighc should have been compiled already.
+/// We are free to call the sleighc and generate the sla file we want.
+fn generate_sla() {
+    // step 1: call sleighc -a SLEIGH_DIR
+    let sleigh_dir = PathBuf::from(format!("{}/src/sleigh", &std::env::var("CARGO_MANIFEST_DIR").unwrap()));
+    sleighc_compile_sla(&sleigh_dir);
+    
+    // step 2: move the "sla" files to the "sla" dir
+    move_sla_files(&sleigh_dir);
+}
+
+fn main() {
+    compile_lib();
+    compile_compiler();
+
+    generate_sla();
 }
