@@ -14,6 +14,7 @@ repository = "https://github.com/ret2lab/bincraft/"
 cxx = "1.0"
 once_cell = "1.6.0"
 num_enum = "0.5.1"
+sleighcraft_util_macro = { path = "../sleighcraft_util_macro" }
 
 [dependencies.pyo3]
 version = "0.13.2"
@@ -21,8 +22,10 @@ features = ["extension-module"]
 
 
 [build-dependencies]
+cc = "1.0"
 cxx-build = "1.0"
 filetime = "0.2" # for incremental compilation
+walkdir = "2"
 
 [features]
 # enable predefined specifications, i.e, those defined within official ghidra
