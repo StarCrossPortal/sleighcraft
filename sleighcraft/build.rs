@@ -246,7 +246,6 @@ fn compile_compiler() {
     let mut compile_opts = prepare_sleighc();
     compile_opts.sources.extend(lib_opt.sources);
     compile_opts.objects.extend(lib_opt.objects);
-    println!("{:?}", compile_opts);
     let mut build = cc::Build::new();
     build
         .cpp(true)
