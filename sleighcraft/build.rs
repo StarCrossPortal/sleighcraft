@@ -350,14 +350,11 @@ fn sleighc_compile_sla(sleigh_dir: &PathBuf) {
 /// As for now, the sleighc should have been compiled already.
 /// We are free to call the sleighc and generate the sla file we want.
 fn generate_sla() {
-    // step 1: call sleighc -a SLEIGH_DIR
     let sleigh_dir = PathBuf::from(format!(
         "{}/src/sleigh",
         &std::env::var("CARGO_MANIFEST_DIR").unwrap()
     ));
     sleighc_compile_sla(&sleigh_dir);
-
-    // step 2: move the "sla" files to the "sla" dir
 }
 
 fn main() {
