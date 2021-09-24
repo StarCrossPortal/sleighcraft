@@ -18,7 +18,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use walkdir::WalkDir;    
+use walkdir::WalkDir;
 
 const DECOMPILER_SOURCE_BASE_CXX: &[&str] = &[
     "space.cc",
@@ -142,13 +142,8 @@ struct CompileOptions {
     objects: Vec<PathBuf>,
 }
 
-fn need_recompile(source: &Path) -> bool {
-    let outdir = env::var("OUT_DIR").unwrap();
-
-    let path = Path::new(&outdir).join(source);
-    let mut path = path;
-    path.set_extension("o");
-    let metadata = match fs::metadata(path) {
+fn need_recompile(source: &Path, target: &Path) -> bool {
+    let metadata = match fs::metadata(target) {
         Ok(m) => m,
         Err(_) => return true,
     };
@@ -159,6 +154,21 @@ fn need_recompile(source: &Path) -> bool {
     let source_mtime = FileTime::from_last_modification_time(&metadata);
 
     source_mtime > object_mtime
+}
+
+fn need_recompile_obj(source: &Path) -> bool {
+    let outdir = env::var("OUT_DIR").unwrap();
+
+    let path = Path::new(&outdir).join(source);
+    let mut path = path;
+    path.set_extension("o");
+    need_recompile(source, &path)
+}
+
+fn need_recompile_sla(source: &Path) -> bool {
+    let mut path = Path::new("sla").join(source.file_name().unwrap());
+    path.set_extension("sla");
+    need_recompile(source, &path)
 }
 
 fn obj_path_from_src_path(src_path: &Path) -> PathBuf {
@@ -174,7 +184,7 @@ fn prepare_sleighc() -> CompileOptions {
 
     for src in SLEIGH_COMPILER_SOURCE.iter() {
         let path = PathBuf::from("src/cpp").join(src);
-        if need_recompile(&path) {
+        if need_recompile_obj(&path) {
             sources.push(path);
         } else {
             objects.push(obj_path_from_src_path(&path));
@@ -190,7 +200,7 @@ fn prepare_lib() -> CompileOptions {
 
     for src in DECOMPILER_SOURCE_BASE_CXX.iter() {
         let path = Path::new("src").join("cpp").join(src);
-        if need_recompile(&path) {
+        if need_recompile_obj(&path) {
             sources.push(path);
         } else {
             objects.push(obj_path_from_src_path(&path));
@@ -205,7 +215,7 @@ fn prepare_lib() -> CompileOptions {
             .join("bison")
             .join(&format!("{}.cpp", name));
 
-        if need_recompile(&path) {
+        if need_recompile_obj(&path) {
             sources.push(path);
         } else {
             objects.push(obj_path_from_src_path(&path));
@@ -227,7 +237,7 @@ fn prepare() -> CompileOptions {
             .join("bridge")
             .join("proxies")
             .join(src);
-        if need_recompile(&path) {
+        if need_recompile_obj(&path) {
             sources.push(path);
         } else {
             objects.push(obj_path_from_src_path(&path));
@@ -296,7 +306,7 @@ fn compile_lib() {
     #[cfg(target_os = "windows")]
     {
         target.define("_WINDOWS", "1"); // This is assumed by ghidra, but not defined by msvc, strange.
-        //target.target("x86_64-pc-windows-gnu");
+                                        //target.target("x86_64-pc-windows-gnu");
     }
     target
         .cpp(true)
@@ -310,29 +320,29 @@ fn compile_lib() {
         .compile("sleigh");
 }
 
-/// This will generate ".sla" file in the directory of its sleigh counterpart.
-fn sleighc_compile_sla(sleigh_dir: &PathBuf) {
+fn sleighc_compile(source: &Path, out: &Path) {
     let sleighc = Path::new(&std::env::var("OUT_DIR").unwrap()).join("sleighc");
 
     Command::new(sleighc)
-        .arg("-a")
-        .arg(sleigh_dir)
+        .arg(source)
+        .arg(out)
         .spawn()
         .unwrap()
         .wait()
         .unwrap();
 }
 
-fn move_sla_files(sleigh_dir: &PathBuf) {
-
+/// This will generate ".sla" file in the directory of its sleigh counterpart.
+fn sleighc_compile_sla(sleigh_dir: &PathBuf) {
     let _ = std::fs::create_dir("sla");
 
-    for entry in WalkDir::new(sleigh_dir).contents_first(true).into_iter() {
-        let name = entry.as_ref().unwrap().file_name();
+    for entry in WalkDir::new(sleigh_dir).into_iter() {
         let from_path = entry.as_ref().unwrap().path();
-        if from_path.extension().map(|e| e == "sla").unwrap_or(false) {
-            let to_path = Path::new("sla").join(name);
-            std::fs::rename(from_path, to_path).unwrap();
+        let to_path = PathBuf::from("sla").join(from_path.file_name().unwrap());
+        if from_path.extension().map(|e| e == "sla").unwrap_or(false)
+            && need_recompile_sla(from_path)
+        {
+            sleighc_compile(from_path, &to_path);
         }
     }
 }
@@ -341,16 +351,17 @@ fn move_sla_files(sleigh_dir: &PathBuf) {
 /// We are free to call the sleighc and generate the sla file we want.
 fn generate_sla() {
     // step 1: call sleighc -a SLEIGH_DIR
-    let sleigh_dir = PathBuf::from(format!("{}/src/sleigh", &std::env::var("CARGO_MANIFEST_DIR").unwrap()));
+    let sleigh_dir = PathBuf::from(format!(
+        "{}/src/sleigh",
+        &std::env::var("CARGO_MANIFEST_DIR").unwrap()
+    ));
     sleighc_compile_sla(&sleigh_dir);
-    
+
     // step 2: move the "sla" files to the "sla" dir
-    move_sla_files(&sleigh_dir);
 }
 
 fn main() {
     compile_lib();
     compile_compiler();
-
     generate_sla();
 }
