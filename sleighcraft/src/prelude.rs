@@ -13,4 +13,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use crate::{arch, CollectingAssemblyEmit, CollectingPcodeEmit, PlainLoadImage, SleighBuilder};
+pub use crate::{CollectingAssemblyEmit, CollectingPcodeEmit, PlainLoadImage, Sleigh};

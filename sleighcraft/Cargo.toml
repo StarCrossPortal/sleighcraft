@@ -1,6 +1,6 @@
 [package]
 name = "sleighcraft"
-version = "0.1.1-dev3"
+version = "0.2.0-dev1"
 authors = ["Anciety <anciety@starcross.cn>"]
 edition = "2018"
 description = "Binary Analysis Craft"
@@ -14,6 +14,7 @@ repository = "https://github.com/ret2lab/bincraft/"
 cxx = "1.0"
 once_cell = "1.6.0"
 num_enum = "0.5.1"
+downcast-rs = "1.2.0"
 sleighcraft_util_macro = { path = "../sleighcraft_util_macro" }
 
 [dependencies.pyo3]

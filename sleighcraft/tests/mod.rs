@@ -1,129 +1,143 @@
+use sleighcraft::SleighSetting;
 use sleighcraft::prelude::*;
-use sleighcraft::Mode::{MODE32, MODE64};
+use sleighcraft::Mode;
 
-// #[test]
-// fn test_custom_spec() {
-//     // let compiled = include_str!("../test/test.sla");
-//     // let mut sleigh = Sleigh::from_spec(compiled).unwrap();
-//     // let buf = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6];
-//     // sleigh.decode(0, &buf, 1);
-//     // println!("{:?}", sleigh.pcode_emit)
-// }
+#[test]
+fn test_custom_spec() {
+    let compiled = include_str!("test.sla");
+
+    let buf = [0x20, 0x30];
+
+    let loader = PlainLoadImage::from_buf(&buf, 0);
+
+    let setting = SleighSetting::with_spec(compiled, Box::new(loader));
+    let mut sleigh = Sleigh::with_setting(setting).unwrap();
+
+    sleigh.decode(0, None).unwrap();
+
+    let asm = sleigh
+        .asm_emit()
+        .as_any()
+        .downcast_ref::<CollectingAssemblyEmit>()
+        .unwrap();
+
+    let pcode = sleigh
+        .pcode_emit()
+        .as_any()
+        .downcast_ref::<CollectingPcodeEmit>()
+        .unwrap();
+
+    assert_eq!(asm.asms.len(), 1);
+    assert!(pcode.pcode_asms.len() > 0);
+}
 
 #[test]
 fn test_x86() {
-    let mut sleigh_builder = SleighBuilder::default();
-    let spec = arch("x86").unwrap();
     let buf = [0x90, 0x32, 0x31];
-    let mut loader = PlainLoadImage::from_buf(&buf, 0);
-    sleigh_builder.loader(&mut loader);
-    sleigh_builder.spec(spec);
-    let mut asm_emit = CollectingAssemblyEmit::default();
-    let mut pcode_emit = CollectingPcodeEmit::default();
-    sleigh_builder.asm_emit(&mut asm_emit);
-    sleigh_builder.pcode_emit(&mut pcode_emit);
-    let mut sleigh = sleigh_builder.try_build().unwrap();
+    let loader = Box::new(PlainLoadImage::from_buf(&buf, 0));
 
-    sleigh.decode(0).unwrap();
+    let mut setting = SleighSetting::with_arch("x86", loader).unwrap();
+    setting.mode(Mode::MODE32);
+    let mut sleigh = Sleigh::with_setting(setting).unwrap();
 
-    println!("{:?}", asm_emit.asms);
-    println!("{:?}", pcode_emit.pcode_asms);
+    sleigh.decode(0, None).unwrap();
+
+    let asm = sleigh
+        .asm_emit()
+        .as_any()
+        .downcast_ref::<CollectingAssemblyEmit>()
+        .unwrap();
+
+    let pcode = sleigh
+        .pcode_emit()
+        .as_any()
+        .downcast_ref::<CollectingPcodeEmit>()
+        .unwrap();
+
+    assert!(asm.asms.len() == 2);
+    assert!(pcode.pcode_asms.len() > 0);
 }
 
 #[test]
 fn test_x86_case_ignoring() {
-    let mut sleigh_builder = SleighBuilder::default();
-    let spec = arch("x86").unwrap();
     let buf = [0x90, 0x32, 0x31];
-    let mut loader = PlainLoadImage::from_buf(&buf, 0);
-    sleigh_builder.loader(&mut loader);
-    sleigh_builder.spec(spec);
-    let mut asm_emit = CollectingAssemblyEmit::default();
-    let mut pcode_emit = CollectingPcodeEmit::default();
-    sleigh_builder.asm_emit(&mut asm_emit);
-    sleigh_builder.pcode_emit(&mut pcode_emit);
-    let mut sleigh = sleigh_builder.try_build().unwrap();
+    let loader = Box::new(PlainLoadImage::from_buf(&buf, 0));
 
-    sleigh.decode(0).unwrap();
+    let mut setting = SleighSetting::with_arch("X86", loader).unwrap();
+    setting.mode(Mode::MODE32);
+    let mut sleigh = Sleigh::with_setting(setting).unwrap();
 
-    println!("{:?}", asm_emit.asms);
-    println!("{:?}", pcode_emit.pcode_asms);
+    sleigh.decode(0, None).unwrap();
+
+    let asm = sleigh
+        .asm_emit()
+        .as_any()
+        .downcast_ref::<CollectingAssemblyEmit>()
+        .unwrap();
+
+    let pcode = sleigh
+        .pcode_emit()
+        .as_any()
+        .downcast_ref::<CollectingPcodeEmit>()
+        .unwrap();
+
+    assert!(asm.asms.len() == 2);
+    assert!(pcode.pcode_asms.len() > 0);
 }
 
-#[test]
-fn test_x86_32_bit() {
-    let mut sleigh_builder = SleighBuilder::default();
-    let spec = arch("x86").unwrap();
-    let buf = [0x90, 0x32, 0x31];
-    let mut loader = PlainLoadImage::from_buf(&buf, 0);
-    sleigh_builder.loader(&mut loader);
-    sleigh_builder.spec(spec);
-    sleigh_builder.mode(MODE32);
-    let mut asm_emit = CollectingAssemblyEmit::default();
-    let mut pcode_emit = CollectingPcodeEmit::default();
-    sleigh_builder.asm_emit(&mut asm_emit);
-    sleigh_builder.pcode_emit(&mut pcode_emit);
-    let mut sleigh = sleigh_builder.try_build().unwrap();
-
-    sleigh.decode(0).unwrap();
-
-    println!("{:?}", asm_emit.asms);
-    println!("{:?}", pcode_emit.pcode_asms);
-}
 
 #[test]
 fn test_x86_64_bit() {
-    let mut sleigh_builder = SleighBuilder::default();
-    let spec = arch("x86-64").unwrap();
-    let buf = [72, 49, 192];
-    let mut loader = PlainLoadImage::from_buf(&buf, 0);
-    sleigh_builder.loader(&mut loader);
-    sleigh_builder.spec(spec);
-    sleigh_builder.mode(MODE64);
-    let mut asm_emit = CollectingAssemblyEmit::default();
-    let mut pcode_emit = CollectingPcodeEmit::default();
-    sleigh_builder.asm_emit(&mut asm_emit);
-    sleigh_builder.pcode_emit(&mut pcode_emit);
-    let mut sleigh = sleigh_builder.try_build().unwrap();
+    let buf = [0x90, 0x58];
+    let loader = Box::new(PlainLoadImage::from_buf(&buf, 0));
+    let mut setting = SleighSetting::with_arch("X86-64", loader).unwrap();
+    setting.mode(Mode::MODE64);
+    let mut sleigh = Sleigh::with_setting(setting).unwrap();
 
-    sleigh.decode(0).unwrap();
+    sleigh.decode(0, None).unwrap();
 
-    println!("{:?}", asm_emit.asms);
-    println!("{:?}", pcode_emit.pcode_asms);
+    let asm = sleigh
+        .asm_emit()
+        .as_any()
+        .downcast_ref::<CollectingAssemblyEmit>()
+        .unwrap();
+
+    let pcode = sleigh
+        .pcode_emit()
+        .as_any()
+        .downcast_ref::<CollectingPcodeEmit>()
+        .unwrap();
+
+    assert!(asm.asms.len() == 2);
+    assert!(pcode.pcode_asms.len() > 0);
 }
+
 
 #[test]
 fn test_mips32le_bit() {
-    let mut sleigh_builder = SleighBuilder::default();
-    let spec = arch("mips32le").unwrap();
     /*
     0x0 j 8
     0x4 add $1, $2, $3
     0x8 ori $1, $2, 0x64
     */
     let buf = [2, 0, 0, 8, 32, 8, 67, 0, 100, 0, 65, 52];
-    let mut loader = PlainLoadImage::from_buf(&buf, 0);
-    sleigh_builder.loader(&mut loader);
-    sleigh_builder.spec(spec);
-    let mut asm_emit = CollectingAssemblyEmit::default();
-    let mut pcode_emit = CollectingPcodeEmit::default();
-    sleigh_builder.asm_emit(&mut asm_emit);
-    sleigh_builder.pcode_emit(&mut pcode_emit);
-    let mut sleigh = sleigh_builder.try_build().unwrap();
+    let loader = Box::new(PlainLoadImage::from_buf(&buf, 0));
+    let mut sleigh = Sleigh::with_arch("mips32le", loader).unwrap();
 
-    sleigh.decode(0).unwrap();
+    sleigh.decode(0, None).unwrap();
 
-    for asm in asm_emit.asms.iter() {
-        println!("{}:\t{}\t{}", asm.addr.offset, asm.mnemonic, asm.body);
-    }
+    let asm = sleigh
+        .asm_emit()
+        .as_any()
+        .downcast_ref::<CollectingAssemblyEmit>()
+        .unwrap();
 
-    println!();
+    let pcode = sleigh
+        .pcode_emit()
+        .as_any()
+        .downcast_ref::<CollectingPcodeEmit>()
+        .unwrap();
 
-    for pcode in pcode_emit.pcode_asms.iter() {
-        println!("address: {:?}", pcode.addr);
-        println!("opcode: {:?}", pcode.opcode);
-        println!("vars: {:?}", pcode.vars);
-        println!("out_var: {:?}", pcode.out_var);
-        println!();
-    }
+    assert!(asm.asms.len() > 0);
+    assert!(pcode.pcode_asms.len() > 0);
 }
