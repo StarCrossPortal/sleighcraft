@@ -17,7 +17,8 @@ use crate::error::{Error, Result};
 use cxx::{CxxString, UniquePtr};
 use once_cell::sync::Lazy;
 use sleighcraft_util_macro::def_sla_load_preset;
-use std::collections::HashMap;
+use std::any::Any;
+use std::collections::{BTreeSet, HashMap};
 
 #[cxx::bridge]
 pub mod ffi {
@@ -188,14 +189,14 @@ pub mod ffi {
     }
 
     extern "Rust" {
-        type RustAssemblyEmit<'a>;
+        type RustAssemblyEmit;
         fn dump(
             self: &mut RustAssemblyEmit,
             address: &AddressProxy,
             mnem: &CxxString,
             body: &CxxString,
         );
-        type RustPcodeEmit<'a>;
+        type RustPcodeEmit;
         fn dump(
             self: &mut RustPcodeEmit,
             address: &AddressProxy,
@@ -203,7 +204,7 @@ pub mod ffi {
             outvar: Pin<&mut VarnodeDataProxy>,
             vars: &CxxVector<VarnodeDataProxy>,
         );
-        type RustLoadImage<'a>;
+        type RustLoadImage;
         fn load_fill(self: &mut RustLoadImage, ptr: &mut [u8], addr: &AddressProxy);
         //fn get_arch_type(self: &RustLoadImage) -> String;
         fn adjust_vma(self: &mut RustLoadImage, adjust: isize);
@@ -379,7 +380,7 @@ pub mod ffi {
 
         type RustLoadImageProxy;
 
-        fn from_rust(load_iamge: &mut RustLoadImage) -> UniquePtr<RustLoadImageProxy>;
+        fn from_rust(load_iamge: Box<RustLoadImage>) -> UniquePtr<RustLoadImageProxy>;
 
         // type InstructionProxy;
         //
@@ -390,20 +391,24 @@ pub mod ffi {
 
         type SleighProxy;
         fn set_spec(self: Pin<&mut SleighProxy>, spec_content: &str, mode: i32);
-        fn new_sleigh_proxy(ld: &mut RustLoadImage) -> UniquePtr<SleighProxy>;
-        fn decode_with(
-            self: Pin<&mut SleighProxy>,
-            asm_emit: &mut RustAssemblyEmit,
-            pcode_emit: &mut RustPcodeEmit,
-            start: u64,
-        ) -> Result<()>;
+        fn new_sleigh_proxy(ld: Box<RustLoadImage>) -> UniquePtr<SleighProxy>;
+        fn decode_asm_at(self: Pin<&mut SleighProxy>, start: u64) -> Result<i32>;
+        fn decode_pcode_at(self: Pin<&mut SleighProxy>, start: u64) -> Result<()>;
+        fn set_loader(self: Pin<&mut SleighProxy>, load: Box<RustLoadImage>);
+        fn set_asm_emit(self: Pin<&mut SleighProxy>, asm_emit: Box<RustAssemblyEmit>);
+        fn set_pcode_emit(self: Pin<&mut SleighProxy>, pcode_emit: Box<RustPcodeEmit>);
+        fn get_loader_mut(self: Pin<&mut SleighProxy>) -> &mut Box<RustLoadImage>;
+        fn get_asm_emit_mut(self: Pin<&mut SleighProxy>) -> &mut Box<RustAssemblyEmit>;
+        fn get_pcode_emit_mut(self: Pin<&mut SleighProxy>) -> &mut Box<RustPcodeEmit>;
+
+        fn get_loader(self: &SleighProxy) -> &Box<RustLoadImage>;
+        fn get_asm_emit(self: &SleighProxy) -> &Box<RustAssemblyEmit>;
+        fn get_pcode_emit(self: &SleighProxy) -> &Box<RustPcodeEmit>;
     }
 }
 
-use crate::Mode::MODE16;
 use ffi::*;
 use num_enum::TryFromPrimitive;
-use std::borrow::BorrowMut;
 use std::pin::Pin;
 
 impl ToString for PcodeOpCode {
@@ -497,15 +502,23 @@ pub enum Mode {
     MODE64 = 2,
 }
 
+impl Default for Mode {
+    fn default() -> Self {
+        Self::MODE16
+    }
+}
+
 pub trait AssemblyEmit {
     fn dump(&mut self, addr: &AddressProxy, mnem: &str, body: &str);
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-pub struct RustAssemblyEmit<'a> {
-    internal: &'a mut dyn AssemblyEmit,
+pub struct RustAssemblyEmit {
+    internal: Box<dyn AssemblyEmit>,
 }
 
-impl<'a> RustAssemblyEmit<'a> {
+impl RustAssemblyEmit {
     pub fn dump(&mut self, address: &AddressProxy, mnem: &CxxString, body: &CxxString) {
         let mnem = mnem.to_str().unwrap();
         let body = body.to_str().unwrap();
@@ -513,8 +526,16 @@ impl<'a> RustAssemblyEmit<'a> {
         self.internal.dump(address, mnem, body);
     }
 
-    pub fn from_internal(internal: &'a mut dyn AssemblyEmit) -> Self {
+    pub fn from_internal(internal: Box<dyn AssemblyEmit>) -> Self {
         Self { internal }
+    }
+
+    pub fn internal_ref(&self) -> &Box<dyn AssemblyEmit> {
+        &self.internal
+    }
+
+    pub fn internal_mut(&mut self) -> &mut Box<dyn AssemblyEmit> {
+        &mut self.internal
     }
 }
 
@@ -534,7 +555,92 @@ impl AssemblyEmit for CollectingAssemblyEmit {
         };
         self.asms.push(asm)
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
+
+
+impl CollectingAssemblyEmit {
+    pub fn correspond<'a>(&'a mut self, pcodes: &'a CollectingPcodeEmit) -> CorrespondedCollectedAsm<'a> {
+        let mut idx_map = HashMap::new();
+        for asm_idx in 0..self.asms.len() {
+            let asm = &self.asms[asm_idx];
+            let mut pcode_indices = BTreeSet::new();
+            for i in 0..pcodes.pcode_asms.len() {
+                let addr = &pcodes.pcode_asms[i].addr;
+                if pcodes.pcode_asms[i].addr == asm.addr {
+                    pcode_indices.insert(PcodeAddrIndex {
+                        pcode_vec_idx: i,
+                        offset: addr.offset,
+                        seq: pcodes.pcode_asms[i].seq
+                    });
+                }
+            }
+
+            idx_map.insert(asm_idx, pcode_indices);
+        }
+
+        CorrespondedCollectedAsm {
+            asm_emit: self,
+            pcode_emit: pcodes,
+            idx_map
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct PcodeAddrIndex {
+    /// index into pcode table
+    pcode_vec_idx: usize,
+    /// addr sequence, to properly order the pcodes
+    offset: u64,
+    seq: u64
+}
+
+impl PartialOrd for PcodeAddrIndex {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.offset == other.offset {
+            self.seq.partial_cmp(&other.seq)
+        } else {
+            self.offset.partial_cmp(&other.offset)
+        }
+    }
+}
+
+impl Ord for PcodeAddrIndex {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+#[derive(Clone)]
+pub struct CorrespondedCollectedAsm<'a> {
+    asm_emit: &'a CollectingAssemblyEmit,
+    pcode_emit: &'a CollectingPcodeEmit,
+    /// asm => range of inst in pcode table.
+    idx_map: HashMap<usize, BTreeSet<PcodeAddrIndex>>,
+}
+
+impl<'a> CorrespondedCollectedAsm<'a> {
+    pub fn asms(&self) -> &Vec<Instruction> {
+        &self.asm_emit.asms
+    }
+
+    pub fn pcodes(&self) -> &Vec<PcodeInstruction> {
+        &self.pcode_emit.pcode_asms
+    }
+
+    pub fn pcode_indices_of_asm(&self, asm_idx: usize) -> BTreeSet<usize> {
+        self.idx_map[&asm_idx].iter().map(|i| i.pcode_vec_idx).collect()
+    }
+}
+
 
 #[derive(Debug)]
 pub struct PcodeVarnodeData {
@@ -560,6 +666,7 @@ impl PcodeVarnodeData {
 #[derive(Debug)]
 pub struct PcodeInstruction {
     pub addr: Address,
+    pub seq: u64,
     pub opcode: PcodeOpCode,
     pub vars: Vec<PcodeVarnodeData>,
     pub out_var: Option<PcodeVarnodeData>,
@@ -578,11 +685,15 @@ pub trait PcodeEmit {
         outvar: Option<&VarnodeDataProxy>,
         vars: &[&VarnodeDataProxy],
     );
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 #[derive(Debug, Default)]
 pub struct CollectingPcodeEmit {
     pub pcode_asms: Vec<PcodeInstruction>,
+    seq: u64,
+    last_offset: u64,
 }
 
 impl PcodeEmit for CollectingPcodeEmit {
@@ -593,10 +704,6 @@ impl PcodeEmit for CollectingPcodeEmit {
         outvar: Option<&VarnodeDataProxy>,
         vars: &[&VarnodeDataProxy],
     ) {
-        //let space = String::from(outvar.get_space().get_name().to_str().unwrap());
-        //let offset = outvar.get_offset() as u64;
-        // let data = format!("{}{}{}{}{:x}{}{}{}{}", "(", space, ",", "0x", of, ",", size, ")", "=");
-
         let space = String::from(addr.get_space().get_name().to_str().unwrap());
         let offset = addr.get_offset() as u64;
         let mut pcode_vars = vec![];
@@ -608,22 +715,46 @@ impl PcodeEmit for CollectingPcodeEmit {
         } else {
             None
         };
+
+        if self.last_offset != offset {
+            self.seq = 0;
+        }
+
         self.pcode_asms.push(PcodeInstruction {
             addr: Address { space, offset },
             opcode: opcode,
             vars: pcode_vars,
+            seq: self.seq,
             out_var,
         });
+
+        self.seq += 1;
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }
 
-pub struct RustPcodeEmit<'a> {
-    pub internal: &'a mut dyn PcodeEmit,
+pub struct RustPcodeEmit {
+    pub internal: Box<dyn PcodeEmit>,
 }
 
-impl<'a> RustPcodeEmit<'a> {
-    pub fn from_internal(internal: &'a mut dyn PcodeEmit) -> Self {
+impl RustPcodeEmit {
+    pub fn from_internal(internal: Box<dyn PcodeEmit>) -> Self {
         Self { internal }
+    }
+
+    pub fn internal_ref(&self) -> &Box<dyn PcodeEmit> {
+        &self.internal
+    }
+
+    pub fn internal_mut(&mut self) -> &mut Box<dyn PcodeEmit> {
+        &mut self.internal
     }
 
     pub fn dump(
@@ -654,13 +785,21 @@ pub trait LoadImage {
     fn buf_size(&mut self) -> usize;
 }
 
-pub struct RustLoadImage<'a> {
-    internal: &'a mut dyn LoadImage,
+pub struct RustLoadImage {
+    internal: Box<dyn LoadImage>,
 }
 
-impl<'a> RustLoadImage<'a> {
-    pub fn from_internal(internal: &'a mut dyn LoadImage) -> Self {
+impl RustLoadImage {
+    pub fn from_internal(internal: Box<dyn LoadImage>) -> Self {
         Self { internal }
+    }
+
+    pub fn internal_ref(&self) -> &Box<dyn LoadImage> {
+        &self.internal
+    }
+
+    pub fn internal_mut(&mut self) -> &mut Box<dyn LoadImage> {
+        &mut self.internal
     }
 
     pub fn load_fill(&mut self, ptr: &mut [u8], addr: &AddressProxy) {
@@ -716,6 +855,23 @@ pub struct Address {
     pub offset: u64,
 }
 
+impl PartialOrd for Address {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.space == other.space {
+            self.offset.partial_cmp(&other.offset)
+        } else {
+            None
+        }
+    }
+}
+
+impl Ord for Address {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other)
+            .expect("incorrect address: not comparable")
+    }
+}
+
 #[derive(Debug)]
 pub struct Instruction {
     pub addr: Address,
@@ -743,96 +899,246 @@ def_sla_load_preset!("sleighcraft/sla/", fn load_preset() -> HashMap<&'static st
 
 const PRESET: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| load_preset());
 
-pub struct Sleigh<'a> {
-    sleigh_proxy: UniquePtr<ffi::SleighProxy>,
-    asm_emit: RustAssemblyEmit<'a>,
-    pcode_emit: RustPcodeEmit<'a>,
-    _load_image: Pin<Box<RustLoadImage<'a>>>,
+pub struct SleighSetting {
+    asm_emit: Box<dyn AssemblyEmit>,
+    pcode_emit: Box<dyn PcodeEmit>,
+    loader: Box<dyn LoadImage>,
+    spec: String,
+    mode: Mode,
 }
 
-impl<'a> Sleigh<'a> {
-    pub fn decode(&mut self, start: u64) -> Result<()> {
-        // self.load_image.set_buf(bytes);
-        let assembly_emit = self.asm_emit.borrow_mut();
-        let pcodes_emit = self.pcode_emit.borrow_mut();
-        self.sleigh_proxy
-            .as_mut()
-            .unwrap()
-            .decode_with(assembly_emit, pcodes_emit, start)
-            .map_err(|e| Error::CppException(e))
+impl SleighSetting {
+    pub fn new(loader: Box<dyn LoadImage>) -> Self {
+        let asm_emit = Box::new(CollectingAssemblyEmit::default());
+        let pcode_emit = Box::new(CollectingPcodeEmit::default());
+        let spec = arch_spec("x86-64")
+            .expect("unable to find default arch: x86-64")
+            .to_string();
+        let mode = Mode::default();
+
+        Self {
+            asm_emit,
+            pcode_emit,
+            loader,
+            spec,
+            mode,
+        }
     }
-}
 
-#[derive(Default)]
-pub struct SleighBuilder<'a> {
-    asm_emit: Option<RustAssemblyEmit<'a>>,
-    pcode_emit: Option<RustPcodeEmit<'a>>,
-    load_image: Option<RustLoadImage<'a>>,
-    spec: Option<String>,
-    mode: Option<Mode>,
-}
-impl<'a> SleighBuilder<'a> {
-    // TODO: add from_arch(arch_name: &str) -> Self helper function.
+    pub fn with_spec(spec: &str, loader: Box<dyn LoadImage>) -> Self {
+        let mut setting = SleighSetting::new(loader);
+        setting.spec(spec);
+        setting
+    }
 
-    pub fn asm_emit(&mut self, asm_emit: &'a mut dyn AssemblyEmit) -> &mut Self {
-        self.asm_emit = Some(RustAssemblyEmit::from_internal(asm_emit));
+    pub fn with_arch(arch: &str, loader: Box<dyn LoadImage>) -> Result<Self> {
+        let mut setting = SleighSetting::new(loader);
+        setting.arch(arch)?;
+        Ok(setting)
+    }
+
+    pub fn asm_emit(&mut self, emit: Box<dyn AssemblyEmit>) -> &mut Self {
+        self.asm_emit = emit;
         self
     }
 
-    pub fn pcode_emit(&mut self, pcode_emit: &'a mut dyn PcodeEmit) -> &mut Self {
-        self.pcode_emit = Some(RustPcodeEmit::from_internal(pcode_emit));
+    pub fn pcode_emit(&mut self, emit: Box<dyn PcodeEmit>) -> &mut Self {
+        self.pcode_emit = emit;
         self
+    }
+
+    pub fn spec(&mut self, spec_str: &str) -> &mut Self {
+        self.spec = spec_str.to_string();
+        self
+    }
+
+    pub fn arch(&mut self, arch_name: &str) -> Result<&mut Self> {
+        self.spec = arch_spec(arch_name)?.to_string();
+        Ok(self)
     }
 
     pub fn mode(&mut self, mode: Mode) -> &mut Self {
-        self.mode = Some(mode);
+        self.mode = mode;
         self
     }
+}
 
-    pub fn spec(&mut self, spec: &str) -> &mut Self {
-        // self.load_image = unsafe{Some(Box::from_raw(loader))};
-        self.spec = Some(spec.to_string());
-        self
+pub struct Sleigh {
+    sleigh_proxy: UniquePtr<ffi::SleighProxy>,
+}
+
+impl Sleigh {
+    pub fn new(loader: Box<dyn LoadImage>) -> Result<Self> {
+        let setting = SleighSetting::new(loader);
+        Self::with_setting(setting)
     }
 
-    pub fn loader(&mut self, loader: &'a mut dyn LoadImage) -> &mut Self {
-        self.load_image = Some(RustLoadImage::from_internal(loader));
-        self
-    }
+    pub fn with_setting(setting: SleighSetting) -> Result<Self> {
+        let SleighSetting {
+            asm_emit,
+            pcode_emit,
+            loader,
+            spec,
+            mode,
+        } = setting;
 
-    pub fn try_build(mut self) -> Result<Sleigh<'a>> {
-        let load_image = self
-            .load_image
-            .ok_or(Error::MissingArg("load_image".to_string()))?;
-        let mut load_image = Box::pin(load_image);
-        let mut sleigh_proxy = new_sleigh_proxy(&mut load_image);
+        let asm_emit = Box::new(RustAssemblyEmit::from_internal(asm_emit));
+        let pcode_emit = Box::new(RustPcodeEmit::from_internal(pcode_emit));
+        let loader = Box::new(RustLoadImage::from_internal(loader));
 
-        let spec = self.spec.ok_or(Error::MissingArg("spec".to_string()))?;
-        if self.mode.is_none() {
-            // Set default address and Operand size
-            self.mode = Some(MODE16);
-        };
+        let mut sleigh_proxy = new_sleigh_proxy(loader);
         sleigh_proxy
             .as_mut()
             .unwrap()
-            .set_spec(spec.as_str(), self.mode.unwrap() as i32);
+            .set_spec(spec.as_str(), mode as i32);
 
-        let asm_emit = self
-            .asm_emit
-            .ok_or(Error::MissingArg("asm_emit".to_string()))?;
-        let pcode_emit = self
-            .pcode_emit
-            .ok_or(Error::MissingArg("pcode_emit".to_string()))?;
+        sleigh_proxy.as_mut().unwrap().set_asm_emit(asm_emit);
 
-        Ok(Sleigh {
-            sleigh_proxy,
-            asm_emit,
-            pcode_emit,
-            _load_image: load_image,
-        })
+        sleigh_proxy.as_mut().unwrap().set_pcode_emit(pcode_emit);
+
+        Ok(Self { sleigh_proxy })
+    }
+
+    pub fn with_arch(arch_name: &str, loader: Box<dyn LoadImage>) -> Result<Self> {
+        let mut setting = SleighSetting::new(loader);
+        setting.arch(arch_name)?;
+        Self::with_setting(setting)
+    }
+
+    pub fn with_spec(spec: &str, loader: Box<dyn LoadImage>) -> Result<Self> {
+        let mut setting = SleighSetting::new(loader);
+        setting.spec(spec);
+        Self::with_setting(setting)
+    }
+
+    pub fn decode_asm_at(&mut self, addr: u64) -> Result<i32> {
+        self.sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .decode_asm_at(addr)
+            .map_err(|e| Error::CppException(e))
+    }
+
+    pub fn decode_pcode_at(&mut self, addr: u64) -> Result<()> {
+        self.sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .decode_pcode_at(addr)
+            .map_err(|e| Error::CppException(e))
+    }
+
+    pub fn decode_at(&mut self, addr: u64) -> Result<i32> {
+        let length = self.decode_asm_at(addr)?;
+        self.decode_pcode_at(addr)?;
+        Ok(length)
+    }
+
+    pub fn decode(&mut self, mut start: u64, inst_size: Option<u64>) -> Result<()> {
+        let inst_size = if inst_size.is_none() {
+            0
+        } else {
+            inst_size.unwrap()
+        };
+        let buf_size = self.load_image_mut().buf_size();
+        let mut buf_used = 0;
+        let mut total_inst = 0;
+
+        while buf_used < buf_size {
+            let length = self.decode_at(start)?;
+            assert!(length >= 0);
+            start += length as u64;
+            buf_used += length as usize;
+            total_inst += 1;
+            if inst_size > 0 && total_inst >= inst_size {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn set_asm_emit(&mut self, asm_emit: Box<dyn AssemblyEmit>) {
+        let asm_emit = Box::new(RustAssemblyEmit::from_internal(asm_emit));
+        self.sleigh_proxy.as_mut().unwrap().set_asm_emit(asm_emit);
+    }
+
+    pub fn set_pcode_emit(&mut self, pcode_emit: Box<dyn PcodeEmit>) {
+        let pcode_emit = Box::new(RustPcodeEmit::from_internal(pcode_emit));
+        self.sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .set_pcode_emit(pcode_emit);
+    }
+
+    pub fn set_loader(&mut self, loader: Box<dyn LoadImage>) {
+        let load_image = Box::new(RustLoadImage::from_internal(loader));
+        self.sleigh_proxy.as_mut().unwrap().set_loader(load_image);
+    }
+
+    pub fn asm_emit(&self) -> &Box<dyn AssemblyEmit> {
+        self.sleigh_proxy
+            .as_ref()
+            .unwrap()
+            .get_asm_emit()
+            .as_ref()
+            .internal_ref()
+    }
+
+    pub fn asm_emit_mut(&mut self) -> &mut Box<dyn AssemblyEmit> {
+        self.sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .get_asm_emit_mut()
+            .as_mut()
+            .internal_mut()
+    }
+
+    pub fn pcode_emit(&self) -> &Box<dyn PcodeEmit> {
+        self.sleigh_proxy
+            .as_ref()
+            .unwrap()
+            .get_pcode_emit()
+            .as_ref()
+            .internal_ref()
+    }
+
+    pub fn pcode_emit_mut(&mut self) -> &mut Box<dyn PcodeEmit> {
+        self.sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .get_pcode_emit_mut()
+            .as_mut()
+            .internal_mut()
+    }
+
+    pub fn loader(&self) -> &Box<dyn LoadImage> {
+        self.load_image()
+    }
+
+    pub fn loader_mut(&mut self) -> &mut Box<dyn LoadImage> {
+        self.load_image_mut()
+    }
+
+    pub fn load_image(&self) -> &Box<dyn LoadImage> {
+        self.sleigh_proxy
+            .as_ref()
+            .unwrap()
+            .get_loader()
+            .as_ref()
+            .internal_ref()
+    }
+
+    pub fn load_image_mut(&mut self) -> &mut Box<dyn LoadImage> {
+        self.sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .get_loader_mut()
+            .as_mut()
+            .internal_mut()
     }
 }
-pub fn arch(name: &str) -> Result<&str> {
+
+pub fn arch_spec(name: &str) -> Result<&str> {
     let content = *PRESET
         .get(&name.to_lowercase().as_str())
         .ok_or(Error::ArchNotFound(name.to_string()))?;

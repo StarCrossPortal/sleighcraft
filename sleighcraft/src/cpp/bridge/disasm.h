@@ -30,11 +30,8 @@ class OpCodeProxy;
 class VarnodeDataProxy;
 class RustLoadImageProxy: public LoadImage {
 public:
-    RustLoadImage& load_image;
-//    string(load_image->get_filename())
-    RustLoadImageProxy(RustLoadImage &load_image): load_image(load_image), LoadImage("nofile") {}
-
-    RustLoadImageProxy(RustLoadImage *load_image): load_image(*load_image), LoadImage("nofile") {}
+    rust::Box<RustLoadImage> load_image;
+    RustLoadImageProxy(rust::Box<RustLoadImage> load_image): load_image(std::move(load_image)), LoadImage("nofile") {}
 
     virtual void loadFill(uint1 *ptr, int4 size, const Address &address);
 
@@ -72,9 +69,8 @@ struct InstructionProxy {
 
 class RustAssemblyEmitProxy: public AssemblyEmit {
 public:
-    RustAssemblyEmit& assemblyEmit;
-    RustAssemblyEmitProxy(RustAssemblyEmit& assemblyEmit): assemblyEmit(assemblyEmit){}
-    RustAssemblyEmitProxy(RustAssemblyEmit* assemblyEmit): assemblyEmit(*assemblyEmit){}
+    rust::Box<RustAssemblyEmit> assemblyEmit;
+    RustAssemblyEmitProxy(rust::Box<RustAssemblyEmit> assemblyEmit): assemblyEmit(std::move(assemblyEmit)){}
 
     virtual void dump(const Address &address, const string &mnemonic, const string &body);
 
@@ -84,9 +80,8 @@ public:
 class RustPcodeEmitProxy: public PcodeEmit {
 public:
 
-    RustPcodeEmit& rustPcodeEmit;
-    RustPcodeEmitProxy(RustPcodeEmit& rustPcodeEmit): rustPcodeEmit(rustPcodeEmit){}
-    RustPcodeEmitProxy(RustPcodeEmit* rustPcodeEmit): rustPcodeEmit(*rustPcodeEmit){}
+    rust::Box<RustPcodeEmit> rustPcodeEmit;
+    RustPcodeEmitProxy(rust::Box<RustPcodeEmit> rustPcodeEmit): rustPcodeEmit(std::move(rustPcodeEmit)){}
 
     virtual void dump(const Address &addr,OpCode opc,VarnodeData *outvar,VarnodeData *vars,int4 isize);
 
@@ -94,14 +89,29 @@ public:
 
 class SleighProxy {
 public:
-    SleighProxy(RustLoadImage &ld): loader(ld), translator(&loader, &this->ctx) {}
+    SleighProxy(rust::Box<RustLoadImage> ld): loader(std::make_unique<RustLoadImageProxy>(std::move(ld))), translator(loader.get(), &this->ctx) {}
+
+    void set_asm_emit(rust::Box<RustAssemblyEmit> asm_emit);
+    void set_pcode_emit(rust::Box<RustPcodeEmit> pcode_emit);
+    rust::Box<RustAssemblyEmit>& get_asm_emit_mut();
+    rust::Box<RustPcodeEmit>& get_pcode_emit_mut();
+    const rust::Box<RustAssemblyEmit>& get_asm_emit() const;
+    const rust::Box<RustPcodeEmit>& get_pcode_emit() const;
 
     void setSpecFromPath(const rust::Str path, int mode);
     void set_spec(const rust::Str spec_content, int mode);
-    void decode_with(RustAssemblyEmit& asm_emit, RustPcodeEmit& pcode_emit, uint64_t start);
+    int32_t decode_asm_at(uint64_t start);
+    void decode_pcode_at(uint64_t start);
+    //void decode_with(RustAssemblyEmit& asm_emit, RustPcodeEmit& pcode_emit, uint64_t start, uint64_t inst_size);
+    void set_loader(rust::Box<RustLoadImage> ld);
+    rust::Box<RustLoadImage>& get_loader_mut();
+    const rust::Box<RustLoadImage>& get_loader() const;
 
 private:
-    RustLoadImageProxy loader;
+    std::unique_ptr<RustLoadImageProxy> loader;
+    std::unique_ptr<RustAssemblyEmitProxy> asm_emit;
+    std::unique_ptr<RustPcodeEmitProxy> pcode_emit;
+
     Sleigh translator;
     ContextInternal ctx;
     DocumentStorage storage;
@@ -109,7 +119,7 @@ private:
 
 //unique_ptr<SleighProxy> proxy_from_spec(rust::Str path, RustLoadImage &ld, RustAssemblyEmit &asm_emit, RustPcodeEmit &rustPcodeEmit);
 //unique_ptr<SleighProxy> proxy_from_spec_path(rust::Str spec_content, RustLoadImage &ld, RustAssemblyEmit &asm_emit, RustPcodeEmit &rustPcodeEmit);
-std::unique_ptr<RustLoadImageProxy> from_rust(RustLoadImage& load_image);
-unique_ptr<SleighProxy> new_sleigh_proxy(RustLoadImage &ld);
+std::unique_ptr<RustLoadImageProxy> from_rust(rust::Box<RustLoadImage> load_image);
+unique_ptr<SleighProxy> new_sleigh_proxy(rust::Box<RustLoadImage> ld);
 
 #endif
