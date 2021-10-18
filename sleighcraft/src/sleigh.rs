@@ -390,12 +390,8 @@ pub mod ffi {
         type SleighProxy;
         fn set_spec(self: Pin<&mut SleighProxy>, spec_content: &str, mode: i32);
         fn new_sleigh_proxy(ld: &mut RustLoadImage) -> UniquePtr<SleighProxy>;
-        fn decode_with(
-            self: Pin<&mut SleighProxy>,
-            asm_emit: &mut RustAssemblyEmit,
-            pcode_emit: &mut RustPcodeEmit,
-            start: u64,
-        ) -> Result<()>;
+        fn print_assembly(self: Pin<&mut SleighProxy>, asm_emit: &mut RustAssemblyEmit, start: u64) ->  Result<i32>;
+        fn one_instruction(self: Pin<&mut SleighProxy>, pcode_emit: &mut RustPcodeEmit, start: u64) ->  Result<i32>;
     }
 }
 
@@ -871,14 +867,44 @@ pub struct Sleigh<'a> {
 
 impl<'a> Sleigh<'a> {
     pub fn decode(&mut self, start: u64) -> Result<()> {
-        // self.load_image.set_buf(bytes);
+        let buf_size = self._load_image.buf_size();
+        let mut buf_used = 0;
+        let mut address = start;
+        // disassembly
+        while buf_used < buf_size {
+            let len = self.print_assembly(address)?;
+            buf_used += len as usize;
+            address += len as u64;
+        }
+
+        // get instructions
+        buf_used = 0;
+        address = start;
+
+        while buf_used < buf_size {
+            let len = self.one_instruction(address)?;
+            buf_used += len as usize;
+            address += len as u64;
+        }
+        Ok(())
+    }
+
+    pub fn print_assembly(&mut self, start: u64) -> Result<i32> {
         let assembly_emit = self.asm_emit.borrow_mut();
+        self.sleigh_proxy
+            .as_mut()
+            .unwrap()
+            .print_assembly(assembly_emit, start)
+            .map_err(|e|Error::CppException(e))
+    }
+
+    pub fn one_instruction(&mut self, start: u64) -> Result<i32> {
         let pcodes_emit = self.pcode_emit.borrow_mut();
         self.sleigh_proxy
             .as_mut()
             .unwrap()
-            .decode_with(assembly_emit, pcodes_emit, start)
-            .map_err(|e| Error::CppException(e))
+            .one_instruction(pcodes_emit, start)
+            .map_err(|e|Error::CppException(e))
     }
 }
 
