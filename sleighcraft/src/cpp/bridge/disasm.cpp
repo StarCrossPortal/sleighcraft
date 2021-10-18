@@ -50,32 +50,32 @@ unique_ptr<SleighProxy> new_sleigh_proxy(RustLoadImage &ld) {
     return proxy;
 }
 
-void SleighProxy::decode_with(RustAssemblyEmit& asm_emit, RustPcodeEmit& pcode_emit, uint64_t start) {
-
+int SleighProxy::print_assembly(RustAssemblyEmit& asm_emit, uint64_t start) {
     auto assemblyEmit = RustAssemblyEmitProxy{asm_emit};
-    auto pcodeEmit = RustPcodeEmitProxy{pcode_emit};
-
     Address address(translator.getDefaultCodeSpace(), start);
 
-    auto length = 0;
-    auto buf_used = 0;
-    auto buf_size = loader.bufSize();
+    try {
+        auto length = translator.printAssembly(assemblyEmit, address);
+        return length;
+    } catch (BadDataError &e) {
+        throw std::invalid_argument(e.explain);
+    } catch (UnimplError &e) {
+        throw std::logic_error(e.explain);  // Pcode is not implemented for this constructor
+    }
 
-    while (buf_used < buf_size) {
-        try {
-            length = translator.printAssembly(assemblyEmit, address);
-            translator.oneInstruction(pcodeEmit, address);
-            address = address + length;
-            buf_used = buf_used + length;
+}
 
-        } catch (BadDataError &e) {
-            throw std::invalid_argument("BadDataError");
-        } catch (UnimplError &e) {
-            throw std::logic_error("UnimplError");  // Pcode is not implemented for this constructor
-        }
+int SleighProxy::one_instruction(RustPcodeEmit& pcode_emit, uint64_t start) {
+    auto pcodeEmit = RustPcodeEmitProxy{pcode_emit};
+    Address address(translator.getDefaultCodeSpace(), start);
 
-        //TODO: implement exception
-
+    try {
+        auto length = translator.oneInstruction(pcodeEmit, address);
+        return length;
+    } catch (BadDataError &e) {
+        throw std::invalid_argument(e.explain);
+    } catch (UnimplError &e) {
+        throw std::logic_error(e.explain);  // Pcode is not implemented for this constructor
     }
 
 }
